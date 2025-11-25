@@ -1,4 +1,3 @@
-// frontend/src/pages/MeetingRoom.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMeetingStore } from '../stores/meetingStore';
@@ -9,6 +8,7 @@ import ImageUpload from '../components/ImageUpload';
 import ActionItemsPanel from '../components/ActionItemsPanel';
 import ImageSidebarPanel from '../components/ImageSidebarPanel';
 import ChatBubble from '../components/ChatBubble';
+import Breadcrumbs from '../components/Breadcrumbs'; // <--- Import this
 
 export default function MeetingRoom() {
     const { meetingId } = useParams();
@@ -21,7 +21,6 @@ export default function MeetingRoom() {
     const [isStreaming, setIsStreaming] = useState(false);
     const [showImageUpload, setShowImageUpload] = useState(false);
     const [showActionItems, setShowActionItems] = useState(false);
-    // Added trigger for sidebar updates
     const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
     const messagesEndRef = useRef(null);
 
@@ -149,10 +148,8 @@ export default function MeetingRoom() {
 
                 const chunk = decoder.decode(value);
 
-                // Check for staff name header
                 const staffMatch = chunk.match(/---STAFF:(.+?)---/);
                 if (staffMatch) {
-                    // Save previous staff message if exists
                     if (currentStaffName && streamedContent) {
                         const staffMember = staff.find(s => s.name === currentStaffName);
                         const staffMessage = {
@@ -166,14 +163,10 @@ export default function MeetingRoom() {
                         };
                         addMessage(staffMessage);
                     }
-
-                    // Start new staff response
                     currentStaffName = staffMatch[1];
                     streamedContent = '';
                 } else {
                     streamedContent += chunk;
-
-                    // Update current message
                     if (currentStaffName) {
                         const staffMember = staff.find(s => s.name === currentStaffName);
                         const staffMessage = {
@@ -190,7 +183,6 @@ export default function MeetingRoom() {
                 }
             }
 
-            // Save final message
             if (currentStaffName && streamedContent) {
                 const staffMember = staff.find(s => s.name === currentStaffName);
                 const staffMessage = {
@@ -218,8 +210,6 @@ export default function MeetingRoom() {
                 image_data: imageData,
                 description: inputMessage || 'Uploaded image',
             });
-
-            // Add image message
             const imageMessage = {
                 id: Date.now(),
                 meeting_id: parseInt(meetingId),
@@ -232,10 +222,7 @@ export default function MeetingRoom() {
             addMessage(imageMessage);
             setShowImageUpload(false);
             setInputMessage('');
-            
-            // Trigger Sidebar refresh
             setImagesRefreshTrigger(Date.now());
-            
         } catch (error) {
             console.error('Error uploading image:', error);
             alert('Failed to upload image');
@@ -259,7 +246,15 @@ export default function MeetingRoom() {
             <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50">
                 {/* Header */}
                 <div className="bg-white border-b border-gray-200 p-6">
-                    <div className="flex justify-between items-center">
+                    {/* Add Breadcrumbs here */}
+                    <Breadcrumbs 
+                        items={[
+                            { label: 'Dashboard', path: '/dashboard' },
+                            { label: currentMeeting?.title || 'Meeting' }
+                        ]} 
+                    />
+
+                    <div className="flex justify-between items-center mt-2">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">
                                 {currentMeeting?.title}
@@ -295,9 +290,8 @@ export default function MeetingRoom() {
                 <div className="flex-1 flex overflow-hidden">
                     {/* Messages Area */}
                     <div className="flex-1 flex flex-col">
-                        {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {/* NEW: Display Summary for Ended Meetings */}
+                            {/* Summary for Ended Meetings */}
                             {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
                                     <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
@@ -393,9 +387,7 @@ export default function MeetingRoom() {
                         )}
                     </div>
 
-                    {/* Right Sidebar */}
                     <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
-                        {/* Image Panel */}
                         <div className="mb-6">
                             <ImageSidebarPanel
                                 meetingId={parseInt(meetingId)}
@@ -404,7 +396,6 @@ export default function MeetingRoom() {
                             />
                         </div>
 
-                        {/* Participants */}
                         <div className="mb-6">
                             <h3 className="font-semibold text-gray-900 mb-4">
                                 Participants ({participantStaff.length})
@@ -428,7 +419,6 @@ export default function MeetingRoom() {
                             </div>
                         </div>
 
-                        {/* Action Items */}
                         {showActionItems && (
                             <ActionItemsPanel
                                 meetingId={parseInt(meetingId)}

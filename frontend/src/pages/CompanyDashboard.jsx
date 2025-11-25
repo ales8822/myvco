@@ -5,6 +5,7 @@ import { useCompanyStore } from '../stores/companyStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useMeetingStore } from '../stores/meetingStore';
 import Sidebar from '../components/Sidebar';
+import Breadcrumbs from '../components/Breadcrumbs'; // <--- Import this
 
 export default function CompanyDashboard() {
     const navigate = useNavigate();
@@ -45,6 +46,13 @@ export default function CompanyDashboard() {
             <Sidebar />
             <div className="ml-64 flex-1 p-8 bg-gray-50 min-h-screen">
                 <div className="max-w-7xl mx-auto">
+                    {/* Breadcrumbs Navigation */}
+                    <Breadcrumbs 
+                        items={[
+                            { label: currentCompany?.name || 'Dashboard' }
+                        ]} 
+                    />
+
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
                             {currentCompany?.name}
