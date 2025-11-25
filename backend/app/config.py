@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     ollama_base_url: str = ""
     default_llm_provider: str = "gemini"
-    default_model: str = "gemini-2.0-flash-exp"
+    default_model: str = "gemini-2.0-flash"
     
     class Config:
         env_file = ".env"

@@ -58,6 +58,14 @@ export const useMeetingStore = create((set) => ({
         }));
     },
 
+    updateMessage: (message) => {
+        set((state) => ({
+            messages: state.messages.map((m) =>
+                m.id === message.id ? message : m
+            ),
+        }));
+    },
+
     endMeeting: async (meetingId) => {
         set({ loading: true, error: null });
         try {

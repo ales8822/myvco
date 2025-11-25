@@ -67,6 +67,18 @@ class MeetingCreate(BaseModel):
     title: str
     meeting_type: str = "general"
     participant_ids: List[int] = []  # Staff IDs
+    template_id: Optional[int] = None  # Optional template
+
+
+class MeetingParticipantInfo(BaseModel):
+    """Participant information for meeting"""
+    staff_id: int
+    staff_name: str
+    staff_role: str
+    joined_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 
 class MeetingMessage(BaseModel):
@@ -76,6 +88,7 @@ class MeetingMessage(BaseModel):
     sender_type: str
     sender_name: str
     content: str
+    image_url: Optional[str] = None  # For image attachments
     created_at: datetime
     
     class Config:
@@ -91,6 +104,7 @@ class Meeting(BaseModel):
     summary: Optional[str]
     created_at: datetime
     ended_at: Optional[datetime]
+    participants: List[MeetingParticipantInfo] = []  # FIX: Include participants
     
     class Config:
         from_attributes = True
@@ -99,10 +113,56 @@ class Meeting(BaseModel):
 class SendMessageRequest(BaseModel):
     content: str
     sender_name: str = "User"
+    image_data: Optional[str] = None  # Base64 encoded image
+
+
+class SendMessageToAllRequest(BaseModel):
+    """Request to get responses from all participants"""
+    content: str
+    sender_name: str = "User"
+    image_data: Optional[str] = None
 
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str  # "active" or "ended"
+
+
+# Image Schemas
+class MeetingImageCreate(BaseModel):
+    image_data: str  # Base64 encoded
+    description: Optional[str] = None
+
+
+class MeetingImage(BaseModel):
+    id: int
+    meeting_id: int
+    message_id: Optional[int]
+    image_path: str
+    image_url: str
+    analysis: Optional[str]  # AI analysis of the image
+    image_metadata: Optional[dict] = None  # Renamed from metadata
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Action Item Schemas
+class ActionItemCreate(BaseModel):
+    description: str
+    assigned_to: Optional[str] = None
+
+
+class ActionItem(BaseModel):
+    id: int
+    meeting_id: int
+    description: str
+    assigned_to: Optional[str]
+    status: str  # "pending", "completed"
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 
 # Knowledge Schemas
@@ -137,3 +197,23 @@ class LLMProvidersResponse(BaseModel):
     gemini_available: bool
     ollama_available: bool
     ollama_models: List[str]
+
+
+# Template Schemas
+class MeetingTemplateCreate(BaseModel):
+    name: str
+    description: str
+    meeting_type: str
+    system_prompt_additions: Optional[str] = None
+
+
+class MeetingTemplate(BaseModel):
+    id: int
+    name: str
+    description: str
+    meeting_type: str
+    system_prompt_additions: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

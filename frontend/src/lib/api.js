@@ -33,7 +33,14 @@ export const meetingsApi = {
     getMessages: (id) => api.get(`/meetings/${id}/messages`),
     sendMessage: (meetingId, staffId, data) =>
         api.post(`/meetings/${meetingId}/messages?staff_id=${staffId}`, data),
+    askAll: (meetingId, data) =>
+        api.post(`/meetings/${meetingId}/ask-all`, data),
     updateStatus: (id, data) => api.put(`/meetings/${id}/status`, data),
+    uploadImage: (meetingId, data) => api.post(`/meetings/${meetingId}/upload-image`, data),
+    getImages: (meetingId) => api.get(`/meetings/${meetingId}/images`),
+    getActionItems: (meetingId) => api.get(`/meetings/${meetingId}/action-items`),
+    createActionItem: (meetingId, data) => api.post(`/meetings/${meetingId}/action-items`, data),
+    completeActionItem: (itemId) => api.put(`/meetings/action-items/${itemId}/complete`),
 };
 
 // Knowledge

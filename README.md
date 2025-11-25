@@ -164,7 +164,7 @@ OLLAMA_BASE_URL=https://your-pod.runpod.io
 
 # Default Settings
 DEFAULT_LLM_PROVIDER=gemini
-DEFAULT_MODEL=gemini-2.0-flash-exp
+DEFAULT_MODEL=gemini-2.0-flash
 ```
 
 ## 🚧 Development

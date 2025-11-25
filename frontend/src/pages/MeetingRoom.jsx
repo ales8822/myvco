@@ -4,16 +4,24 @@ import { useMeetingStore } from '../stores/meetingStore';
 import { useStaffStore } from '../stores/staffStore';
 import { meetingsApi } from '../lib/api';
 import Sidebar from '../components/Sidebar';
+import ImageUpload from '../components/ImageUpload';
+import ActionItemsPanel from '../components/ActionItemsPanel';
+import ImageSidebarPanel from '../components/ImageSidebarPanel';
+import ChatBubble from '../components/ChatBubble';
 
 export default function MeetingRoom() {
     const { meetingId } = useParams();
     const navigate = useNavigate();
-    const { currentMeeting, messages, selectMeeting, addMessage, endMeeting } =
+    const { currentMeeting, messages, selectMeeting, addMessage, updateMessage, endMeeting } =
         useMeetingStore();
     const { staff } = useStaffStore();
     const [inputMessage, setInputMessage] = useState('');
     const [selectedStaffId, setSelectedStaffId] = useState(null);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [showImageUpload, setShowImageUpload] = useState(false);
+    const [showActionItems, setShowActionItems] = useState(false);
+    // Added trigger for sidebar updates
+    const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -69,7 +77,6 @@ export default function MeetingRoom() {
 
             const selectedStaff = staff.find((s) => s.id === selectedStaffId);
 
-            // Create a placeholder message for streaming
             const staffMessage = {
                 id: Date.now() + 1,
                 meeting_id: parseInt(meetingId),
@@ -88,16 +95,149 @@ export default function MeetingRoom() {
 
                 const chunk = decoder.decode(value);
                 streamedContent += chunk;
-
-                // Update the message content
                 staffMessage.content = streamedContent;
-                addMessage({ ...staffMessage });
+                updateMessage({ ...staffMessage });
             }
 
             setIsStreaming(false);
         } catch (error) {
             console.error('Error sending message:', error);
             setIsStreaming(false);
+        }
+    };
+
+    const handleAskAll = async () => {
+        if (!inputMessage.trim()) return;
+
+        const userMessage = {
+            id: Date.now(),
+            meeting_id: parseInt(meetingId),
+            sender_type: 'user',
+            sender_name: 'User',
+            content: inputMessage,
+            created_at: new Date().toISOString(),
+        };
+
+        addMessage(userMessage);
+        setInputMessage('');
+        setIsStreaming(true);
+
+        try {
+            const response = await fetch(
+                `/api/meetings/${meetingId}/ask-all`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: inputMessage,
+                        sender_name: 'User',
+                    }),
+                }
+            );
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let currentStaffName = null;
+            let streamedContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+
+                // Check for staff name header
+                const staffMatch = chunk.match(/---STAFF:(.+?)---/);
+                if (staffMatch) {
+                    // Save previous staff message if exists
+                    if (currentStaffName && streamedContent) {
+                        const staffMember = staff.find(s => s.name === currentStaffName);
+                        const staffMessage = {
+                            id: Date.now() + Math.random(),
+                            meeting_id: parseInt(meetingId),
+                            staff_id: staffMember?.id,
+                            sender_type: 'staff',
+                            sender_name: currentStaffName,
+                            content: streamedContent.trim(),
+                            created_at: new Date().toISOString(),
+                        };
+                        addMessage(staffMessage);
+                    }
+
+                    // Start new staff response
+                    currentStaffName = staffMatch[1];
+                    streamedContent = '';
+                } else {
+                    streamedContent += chunk;
+
+                    // Update current message
+                    if (currentStaffName) {
+                        const staffMember = staff.find(s => s.name === currentStaffName);
+                        const staffMessage = {
+                            id: `temp-${currentStaffName}`,
+                            meeting_id: parseInt(meetingId),
+                            staff_id: staffMember?.id,
+                            sender_type: 'staff',
+                            sender_name: currentStaffName,
+                            content: streamedContent.trim(),
+                            created_at: new Date().toISOString(),
+                        };
+                        updateMessage(staffMessage);
+                    }
+                }
+            }
+
+            // Save final message
+            if (currentStaffName && streamedContent) {
+                const staffMember = staff.find(s => s.name === currentStaffName);
+                const staffMessage = {
+                    id: Date.now() + Math.random(),
+                    meeting_id: parseInt(meetingId),
+                    staff_id: staffMember?.id,
+                    sender_type: 'staff',
+                    sender_name: currentStaffName,
+                    content: streamedContent.trim(),
+                    created_at: new Date().toISOString(),
+                };
+                addMessage(staffMessage);
+            }
+
+            setIsStreaming(false);
+        } catch (error) {
+            console.error('Error asking all:', error);
+            setIsStreaming(false);
+        }
+    };
+
+    const handleImageUpload = async (imageData) => {
+        try {
+            const response = await meetingsApi.uploadImage(parseInt(meetingId), {
+                image_data: imageData,
+                description: inputMessage || 'Uploaded image',
+            });
+
+            // Add image message
+            const imageMessage = {
+                id: Date.now(),
+                meeting_id: parseInt(meetingId),
+                sender_type: 'user',
+                sender_name: 'User',
+                content: `Uploaded image: ${response.data.description || 'No description'}`,
+                image_url: response.data.image_url,
+                created_at: new Date().toISOString(),
+            };
+            addMessage(imageMessage);
+            setShowImageUpload(false);
+            setInputMessage('');
+            
+            // Trigger Sidebar refresh
+            setImagesRefreshTrigger(Date.now());
+            
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image');
         }
     };
 
@@ -108,10 +248,9 @@ export default function MeetingRoom() {
         }
     };
 
-    const participants = currentMeeting?.participants || [];
-    const participantStaff = staff.filter((s) =>
-        participants.some((p) => p.staff_id === s.id)
-    );
+    const participantStaff = currentMeeting?.participants?.map(p =>
+        staff.find(s => s.id === p.staff_id)
+    ).filter(Boolean) || [];
 
     return (
         <div className="flex">
@@ -130,17 +269,25 @@ export default function MeetingRoom() {
                                     <span className="text-green-600">Active</span>
                                 ) : (
                                     <span className="text-gray-600">Ended</span>
-                                )}
+                                )} • {participantStaff.length} participants
                             </p>
                         </div>
-                        {currentMeeting?.status === 'active' && (
+                        <div className="flex gap-3">
                             <button
-                                onClick={handleEndMeeting}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                onClick={() => setShowActionItems(!showActionItems)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                             >
-                                End Meeting
+                                {showActionItems ? 'Hide' : 'Show'} Action Items
                             </button>
-                        )}
+                            {currentMeeting?.status === 'active' && (
+                                <button
+                                    onClick={handleEndMeeting}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                >
+                                    End Meeting
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -150,47 +297,10 @@ export default function MeetingRoom() {
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             {messages.map((message, idx) => (
-                                <div
+                                <ChatBubble
                                     key={`${message.id}-${idx}`}
-                                    className={`flex ${message.sender_type === 'user'
-                                            ? 'justify-end'
-                                            : 'justify-start'
-                                        }`}
-                                >
-                                    <div
-                                        className={`max-w-2xl ${message.sender_type === 'user'
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-white border border-gray-200'
-                                            } rounded-lg p-4 shadow-sm`}
-                                    >
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div
-                                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${message.sender_type === 'user'
-                                                        ? 'bg-primary-700 text-white'
-                                                        : 'bg-gradient-to-br from-primary-500 to-secondary-500 text-white'
-                                                    }`}
-                                            >
-                                                {message.sender_name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <span
-                                                className={`font-semibold text-sm ${message.sender_type === 'user'
-                                                        ? 'text-white'
-                                                        : 'text-gray-900'
-                                                    }`}
-                                            >
-                                                {message.sender_name}
-                                            </span>
-                                        </div>
-                                        <p
-                                            className={`whitespace-pre-wrap ${message.sender_type === 'user'
-                                                    ? 'text-white'
-                                                    : 'text-gray-800'
-                                                }`}
-                                        >
-                                            {message.content}
-                                        </p>
-                                    </div>
-                                </div>
+                                    message={message}
+                                />
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
@@ -198,69 +308,120 @@ export default function MeetingRoom() {
                         {/* Input Area */}
                         {currentMeeting?.status === 'active' && (
                             <div className="bg-white border-t border-gray-200 p-6">
-                                <form onSubmit={handleSendMessage} className="space-y-4">
-                                    <div>
-                                        <label className="label">Responding Staff Member</label>
-                                        <select
-                                            className="input"
-                                            value={selectedStaffId || ''}
-                                            onChange={(e) =>
-                                                setSelectedStaffId(parseInt(e.target.value))
-                                            }
-                                            required
-                                        >
-                                            <option value="">Select staff member</option>
-                                            {participantStaff.map((member) => (
-                                                <option key={member.id} value={member.id}>
-                                                    {member.name} - {member.role}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <input
-                                            type="text"
-                                            className="input flex-1"
-                                            value={inputMessage}
-                                            onChange={(e) => setInputMessage(e.target.value)}
-                                            placeholder="Type your message..."
-                                            disabled={isStreaming}
+                                {showImageUpload ? (
+                                    <div className="mb-4">
+                                        <ImageUpload
+                                            onImageSelect={(data) => { }}
+                                            onUpload={handleImageUpload}
                                         />
                                         <button
-                                            type="submit"
-                                            className="btn-primary"
-                                            disabled={isStreaming || !selectedStaffId}
+                                            onClick={() => setShowImageUpload(false)}
+                                            className="btn-secondary w-full mt-2"
                                         >
-                                            {isStreaming ? 'Sending...' : 'Send'}
+                                            Cancel
                                         </button>
                                     </div>
-                                </form>
+                                ) : (
+                                    <form onSubmit={handleSendMessage} className="space-y-4">
+                                        <div>
+                                            <label className="label">Responding Staff Member</label>
+                                            <select
+                                                className="input"
+                                                value={selectedStaffId || ''}
+                                                onChange={(e) =>
+                                                    setSelectedStaffId(parseInt(e.target.value))
+                                                }
+                                                required
+                                            >
+                                                <option value="">Select staff member</option>
+                                                {participantStaff.map((member) => (
+                                                    <option key={member.id} value={member.id}>
+                                                        {member.name} - {member.role}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <input
+                                                type="text"
+                                                className="input flex-1"
+                                                value={inputMessage}
+                                                onChange={(e) => setInputMessage(e.target.value)}
+                                                placeholder="Type your message..."
+                                                disabled={isStreaming}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowImageUpload(true)}
+                                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                                                disabled={isStreaming}
+                                            >
+                                                🖼️
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn-primary"
+                                                disabled={isStreaming || !selectedStaffId}
+                                            >
+                                                {isStreaming ? 'Sending...' : 'Send'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleAskAll}
+                                                className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700"
+                                                disabled={isStreaming || participantStaff.length === 0}
+                                            >
+                                                Ask All
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {/* Participants Sidebar */}
-                    <div className="w-64 bg-white border-l border-gray-200 p-6">
-                        <h3 className="font-semibold text-gray-900 mb-4">
-                            Participants ({participantStaff.length})
-                        </h3>
-                        <div className="space-y-3">
-                            {participantStaff.map((member) => (
-                                <div key={member.id} className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                                        <span className="text-sm font-bold text-white">
-                                            {member.name.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900 text-sm">
-                                            {member.name}
-                                        </p>
-                                        <p className="text-xs text-gray-600">{member.role}</p>
-                                    </div>
-                                </div>
-                            ))}
+                    {/* Right Sidebar */}
+                    <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
+                        {/* Image Panel */}
+                        <div className="mb-6">
+                            <ImageSidebarPanel
+                                meetingId={parseInt(meetingId)}
+                                isActive={currentMeeting?.status === 'active'}
+                                refreshTrigger={imagesRefreshTrigger}
+                            />
                         </div>
+
+                        {/* Participants */}
+                        <div className="mb-6">
+                            <h3 className="font-semibold text-gray-900 mb-4">
+                                Participants ({participantStaff.length})
+                            </h3>
+                            <div className="space-y-3">
+                                {participantStaff.map((member) => (
+                                    <div key={member.id} className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+                                            <span className="text-sm font-bold text-white">
+                                                {member.name.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 text-sm">
+                                                {member.name}
+                                            </p>
+                                            <p className="text-xs text-gray-600">{member.role}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Action Items */}
+                        {showActionItems && (
+                            <ActionItemsPanel
+                                meetingId={parseInt(meetingId)}
+                                isActive={currentMeeting?.status === 'active'}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
