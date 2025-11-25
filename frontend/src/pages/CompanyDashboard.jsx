@@ -5,13 +5,13 @@ import { useCompanyStore } from '../stores/companyStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useMeetingStore } from '../stores/meetingStore';
 import Sidebar from '../components/Sidebar';
-import Breadcrumbs from '../components/Breadcrumbs'; // <--- Import this
+import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function CompanyDashboard() {
     const navigate = useNavigate();
     const { currentCompany } = useCompanyStore();
     const { staff, fetchStaff } = useStaffStore();
-    const { meetings, fetchMeetings, createMeeting } = useMeetingStore();
+    const { meetings, fetchMeetings, createMeeting, deleteMeeting } = useMeetingStore();
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [meetingForm, setMeetingForm] = useState({
         title: '',
@@ -35,6 +35,13 @@ export default function CompanyDashboard() {
             navigate(`/meeting/${meeting.id}`);
         } catch (error) {
             console.error('Error creating meeting:', error);
+        }
+    };
+
+    const handleDeleteMeeting = async (e, meetingId) => {
+        e.stopPropagation(); // Prevent navigation
+        if (window.confirm('Are you sure you want to delete this meeting? This cannot be undone.')) {
+            await deleteMeeting(meetingId);
         }
     };
 
@@ -141,15 +148,24 @@ export default function CompanyDashboard() {
                                     <div
                                         key={meeting.id}
                                         onClick={() => navigate(`/meeting/${meeting.id}`)}
-                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center group"
                                     >
-                                        <h3 className="font-semibold text-gray-900">
-                                            {meeting.title}
-                                        </h3>
-                                        <p className="text-sm text-gray-600">
-                                            {meeting.meeting_type} • Started{' '}
-                                            {new Date(meeting.created_at).toLocaleString()}
-                                        </p>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">
+                                                {meeting.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {meeting.meeting_type} • Started{' '}
+                                                {new Date(meeting.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => handleDeleteMeeting(e, meeting.id)}
+                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all"
+                                            title="Delete meeting"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -167,20 +183,29 @@ export default function CompanyDashboard() {
                                     <div
                                         key={meeting.id}
                                         onClick={() => navigate(`/meeting/${meeting.id}`)}
-                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-start group"
                                     >
-                                        <h3 className="font-semibold text-gray-900">
-                                            {meeting.title}
-                                        </h3>
-                                        <p className="text-sm text-gray-600 mb-2">
-                                            {meeting.meeting_type} • Ended{' '}
-                                            {new Date(meeting.ended_at).toLocaleString()}
-                                        </p>
-                                        {meeting.summary && (
-                                            <p className="text-sm text-gray-700 line-clamp-2">
-                                                {meeting.summary}
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-900">
+                                                {meeting.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-600 mb-2">
+                                                {meeting.meeting_type} • Ended{' '}
+                                                {new Date(meeting.ended_at).toLocaleString()}
                                             </p>
-                                        )}
+                                            {meeting.summary && (
+                                                <p className="text-sm text-gray-700 line-clamp-2">
+                                                    {meeting.summary}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button 
+                                            onClick={(e) => handleDeleteMeeting(e, meeting.id)}
+                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all ml-4"
+                                            title="Delete meeting"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 ))}
                             </div>

@@ -15,7 +15,6 @@ from ..services.memory_service import memory_service
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 # Robust absolute path calculation
-# backend/app/routers/meetings.py -> backend/
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "meeting_images")
 
@@ -43,7 +42,6 @@ def create_meeting(company_id: int, meeting: schemas.MeetingCreate, db: Session 
     
     db.commit()
     
-    # Return meeting with participants (simplified for brevity, logic remains same)
     participants_data = []
     participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == db_meeting.id).all()
     for participant in participants:
@@ -139,7 +137,6 @@ async def send_message(meeting_id: int, message: schemas.SendMessageRequest, sta
     db.add(user_message)
     db.commit()
     
-    # Get contexts
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
     image_context = memory_service.get_current_meeting_image(db, meeting_id)
@@ -251,7 +248,6 @@ async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreat
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
     
-    # ensure directory exists
     if not os.path.exists(UPLOADS_DIR):
         os.makedirs(UPLOADS_DIR)
     
@@ -264,16 +260,13 @@ async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreat
         image_data = base64.b64decode(encoded)
         image_filename = f"meeting_{meeting_id}_{datetime.utcnow().timestamp()}.png"
         
-        # Absolute path for saving
         abs_image_path = os.path.join(UPLOADS_DIR, image_filename)
         
-        # Write and sync to disk immediately
         with open(abs_image_path, "wb") as f:
             f.write(image_data)
             f.flush()
-            os.fsync(f.fileno()) # Force write to disk
+            os.fsync(f.fileno()) 
         
-        # Store relative path (portable) using forward slashes
         relative_path = f"uploads/meeting_images/{image_filename}"
         
         db_image = MeetingImage(
@@ -329,3 +322,37 @@ def complete_action_item(item_id: int, db: Session = Depends(get_db)):
 async def extract_action_items(db: Session, meeting_id: int, llm_service):
     # Implementation skipped for brevity (unchanged)
     pass
+
+@router.delete("/{meeting_id}")
+def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
+    """Delete a meeting and all associated data, including image files"""
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # 1. Clean up image files from disk
+    images = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).all()
+    
+    for img in images:
+        if img.image_path:
+            try:
+                # Construct absolute path using consistent logic
+                filename = os.path.basename(img.image_path)
+                file_path = os.path.join(UPLOADS_DIR, filename)
+                
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"DEBUG: Deleted image file: {file_path}")
+                else:
+                    print(f"DEBUG: File not found during deletion: {file_path}")
+            except Exception as e:
+                print(f"Error deleting file for image {img.id}: {e}")
+
+    # 2. Delete image records manually (safety in case of no cascade)
+    db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).delete()
+    
+    # 3. Delete the meeting (will cascade to messages/participants typically)
+    db.delete(meeting)
+    db.commit()
+    
+    return {"message": "Meeting and associated files deleted successfully"}
