@@ -1,3 +1,4 @@
+// frontend/src/pages/CompanyDashboard.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
@@ -157,7 +158,8 @@ export default function CompanyDashboard() {
                                 {pastMeetings.slice(0, 5).map((meeting) => (
                                     <div
                                         key={meeting.id}
-                                        className="p-4 bg-gray-50 rounded-lg"
+                                        onClick={() => navigate(`/meeting/${meeting.id}`)}
+                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                                     >
                                         <h3 className="font-semibold text-gray-900">
                                             {meeting.title}

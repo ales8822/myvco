@@ -1,3 +1,4 @@
+// frontend/src/pages/MeetingRoom.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMeetingStore } from '../stores/meetingStore';
@@ -296,6 +297,18 @@ export default function MeetingRoom() {
                     <div className="flex-1 flex flex-col">
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            {/* NEW: Display Summary for Ended Meetings */}
+                            {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                                        <span>📝</span> Meeting Summary
+                                    </h3>
+                                    <div className="prose prose-sm max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                        {currentMeeting.summary}
+                                    </div>
+                                </div>
+                            )}
+
                             {messages.map((message, idx) => (
                                 <ChatBubble
                                     key={`${message.id}-${idx}`}
