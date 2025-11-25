@@ -8,7 +8,9 @@ import ImageUpload from '../components/ImageUpload';
 import ActionItemsPanel from '../components/ActionItemsPanel';
 import ImageSidebarPanel from '../components/ImageSidebarPanel';
 import ChatBubble from '../components/ChatBubble';
-import Breadcrumbs from '../components/Breadcrumbs'; // <--- Import this
+import Breadcrumbs from '../components/Breadcrumbs';
+import ReactMarkdown from 'react-markdown'; // Import Markdown
+import remarkGfm from 'remark-gfm'; // Import GFM
 
 export default function MeetingRoom() {
     const { meetingId } = useParams();
@@ -246,7 +248,7 @@ export default function MeetingRoom() {
             <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50">
                 {/* Header */}
                 <div className="bg-white border-b border-gray-200 p-6">
-                    {/* Add Breadcrumbs here */}
+                    {/* Breadcrumbs */}
                     <Breadcrumbs 
                         items={[
                             { label: 'Dashboard', path: '/dashboard' },
@@ -291,14 +293,24 @@ export default function MeetingRoom() {
                     {/* Messages Area */}
                     <div className="flex-1 flex flex-col">
                         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {/* Summary for Ended Meetings */}
+                            {/* Summary for Ended Meetings - NOW WITH MARKDOWN */}
                             {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
                                     <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
                                         <span>📝</span> Meeting Summary
                                     </h3>
-                                    <div className="prose prose-sm max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed">
-                                        {currentMeeting.summary}
+                                    <div className="prose prose-sm max-w-none text-gray-800">
+                                        <ReactMarkdown 
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                ul: ({node, ...props}) => <ul className="list-disc ml-4" {...props} />,
+                                                ol: ({node, ...props}) => <ol className="list-decimal ml-4" {...props} />,
+                                                h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-2" {...props} />,
+                                                h2: ({node, ...props}) => <h2 className="text-base font-bold mt-2" {...props} />,
+                                            }}
+                                        >
+                                            {currentMeeting.summary}
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
                             )}
