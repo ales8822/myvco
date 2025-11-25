@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 
@@ -35,8 +35,7 @@ class StaffBase(BaseModel):
     personality: Optional[str] = None
     expertise: Optional[List[str]] = None
     system_prompt: Optional[str] = None
-    llm_provider: str = "gemini"
-    llm_model: Optional[str] = None
+    # Removed LLM fields from here
 
 
 class StaffCreate(StaffBase):
@@ -49,8 +48,6 @@ class StaffUpdate(BaseModel):
     personality: Optional[str] = None
     expertise: Optional[List[str]] = None
     system_prompt: Optional[str] = None
-    llm_provider: Optional[str] = None
-    llm_model: Optional[str] = None
 
 
 class Staff(StaffBase):
@@ -63,18 +60,26 @@ class Staff(StaffBase):
 
 
 # Meeting Schemas
+class ParticipantConfig(BaseModel):
+    """Configuration for a participant in a specific meeting"""
+    staff_id: int
+    llm_provider: str = "gemini"
+    llm_model: Optional[str] = None
+
 class MeetingCreate(BaseModel):
     title: str
     meeting_type: str = "general"
-    participant_ids: List[int] = []  # Staff IDs
-    template_id: Optional[int] = None  # Optional template
+    participants: List[ParticipantConfig] = []  # Changed from list of IDs to config objects
+    template_id: Optional[int] = None
 
 
 class MeetingParticipantInfo(BaseModel):
-    """Participant information for meeting"""
+    """Participant information for meeting response"""
     staff_id: int
     staff_name: str
     staff_role: str
+    llm_provider: str
+    llm_model: Optional[str]
     joined_at: datetime
     
     class Config:
@@ -88,7 +93,7 @@ class MeetingMessage(BaseModel):
     sender_type: str
     sender_name: str
     content: str
-    image_url: Optional[str] = None  # For image attachments
+    image_url: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -104,7 +109,7 @@ class Meeting(BaseModel):
     summary: Optional[str]
     created_at: datetime
     ended_at: Optional[datetime]
-    participants: List[MeetingParticipantInfo] = []  # FIX: Include participants
+    participants: List[MeetingParticipantInfo] = []
     
     class Config:
         from_attributes = True
@@ -113,23 +118,22 @@ class Meeting(BaseModel):
 class SendMessageRequest(BaseModel):
     content: str
     sender_name: str = "User"
-    image_data: Optional[str] = None  # Base64 encoded image
+    image_data: Optional[str] = None
 
 
 class SendMessageToAllRequest(BaseModel):
-    """Request to get responses from all participants"""
     content: str
     sender_name: str = "User"
     image_data: Optional[str] = None
 
 
 class UpdateMeetingStatusRequest(BaseModel):
-    status: str  # "active" or "ended"
+    status: str
 
 
 # Image Schemas
 class MeetingImageCreate(BaseModel):
-    image_data: str  # Base64 encoded
+    image_data: str
     description: Optional[str] = None
 
 
@@ -139,8 +143,8 @@ class MeetingImage(BaseModel):
     message_id: Optional[int]
     image_path: str
     image_url: str
-    analysis: Optional[str]  # AI analysis of the image
-    image_metadata: Optional[dict] = None  # Renamed from metadata
+    analysis: Optional[str]
+    image_metadata: Optional[dict] = None
     created_at: datetime
     
     class Config:
@@ -158,7 +162,7 @@ class ActionItem(BaseModel):
     meeting_id: int
     description: str
     assigned_to: Optional[str]
-    status: str  # "pending", "completed"
+    status: str
     created_at: datetime
     
     class Config:

@@ -2,37 +2,23 @@ import { useEffect, useState } from 'react';
 import { useCompanyStore } from '../stores/companyStore';
 import { useStaffStore } from '../stores/staffStore';
 import Sidebar from '../components/Sidebar';
-import { llmApi } from '../lib/api';
 
 export default function StaffManagement() {
     const { currentCompany } = useCompanyStore();
     const { staff, fetchStaff, hireStaff, removeStaff } = useStaffStore();
     const [showHireModal, setShowHireModal] = useState(false);
-    const [providers, setProviders] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         role: '',
         personality: '',
         expertise: '',
-        llm_provider: 'gemini',
-        llm_model: '',
     });
 
     useEffect(() => {
         if (currentCompany) {
             fetchStaff(currentCompany.id);
         }
-        loadProviders();
     }, [currentCompany]);
-
-    const loadProviders = async () => {
-        try {
-            const response = await llmApi.getProviders();
-            setProviders(response.data);
-        } catch (error) {
-            console.error('Error loading providers:', error);
-        }
-    };
 
     const handleHireStaff = async (e) => {
         e.preventDefault();
@@ -48,8 +34,6 @@ export default function StaffManagement() {
                 role: '',
                 personality: '',
                 expertise: '',
-                llm_provider: 'gemini',
-                llm_model: '',
             });
         } catch (error) {
             console.error('Error hiring staff:', error);
@@ -136,10 +120,6 @@ export default function StaffManagement() {
                                             ))}
                                         </div>
                                     )}
-                                    <div className="text-xs text-gray-500 mt-2">
-                                        Provider: {member.llm_provider}
-                                        {member.llm_model && ` • ${member.llm_model}`}
-                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -192,7 +172,7 @@ export default function StaffManagement() {
                                     placeholder="Describe their personality traits"
                                 />
                             </div>
-                            <div className="mb-4">
+                            <div className="mb-6">
                                 <label className="label">Expertise (comma-separated)</label>
                                 <input
                                     type="text"
@@ -204,38 +184,7 @@ export default function StaffManagement() {
                                     placeholder="e.g., Python, React, Marketing"
                                 />
                             </div>
-                            <div className="mb-4">
-                                <label className="label">LLM Provider</label>
-                                <select
-                                    className="input"
-                                    value={formData.llm_provider}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, llm_provider: e.target.value })
-                                    }
-                                >
-                                    <option value="gemini">Gemini</option>
-                                    <option value="ollama">Ollama</option>
-                                </select>
-                            </div>
-                            {formData.llm_provider === 'ollama' && providers?.ollama_models && (
-                                <div className="mb-4">
-                                    <label className="label">Ollama Model</label>
-                                    <select
-                                        className="input"
-                                        value={formData.llm_model}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, llm_model: e.target.value })
-                                        }
-                                    >
-                                        <option value="">Select a model</option>
-                                        {providers.ollama_models.map((model) => (
-                                            <option key={model} value={model}>
-                                                {model}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
+                            
                             <div className="flex gap-3">
                                 <button type="submit" className="btn-primary flex-1">
                                     Hire Staff

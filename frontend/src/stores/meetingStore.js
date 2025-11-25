@@ -1,3 +1,4 @@
+// stores/meetingStore.js
 import { create } from "zustand";
 import { meetingsApi } from "../lib/api";
 
