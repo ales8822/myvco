@@ -68,8 +68,8 @@ OLLAMA_BASE_URL=https://your-runpod-id.runpod.io  # Optional
 uvicorn app.main:app --reload
 ```
 
-Backend will be available at: http://localhost:8000
-API docs at: http://localhost:8000/docs
+Backend will be available at: http://localhost:8001
+API docs at: http://localhost:8001/docs
 
 ### Frontend Setup
 
@@ -169,7 +169,7 @@ DEFAULT_MODEL=gemini-2.0-flash
 
 ## 🚧 Development
 
-- Backend runs on port 8000
+- Backend runs on port 8001
 - Frontend runs on port 5173
 - Frontend proxies `/api` requests to backend
 - Database file: `myvco.db` (created automatically)

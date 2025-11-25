@@ -109,7 +109,7 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
                     {/* Current Image Display */}
                     <div className="mb-4">
                         <img
-                            src={`http://localhost:8000${currentImage.image_url}`}
+                            src={`http://localhost:8001${currentImage.image_url}`}
                             alt={currentImage.description || 'Meeting image'}
                             className="w-full rounded-lg border border-gray-200"
                         />
@@ -155,7 +155,7 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
                                             }`}
                                     >
                                         <img
-                                            src={`http://localhost:8000${img.image_url}`}
+                                            src={`http://localhost:8001${img.image_url}`}
                                             alt={`Thumbnail ${idx + 1}`}
                                             className="w-full h-full object-cover"
                                         />

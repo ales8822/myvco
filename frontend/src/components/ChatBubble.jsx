@@ -31,7 +31,7 @@ export default function ChatBubble({ message }) {
                 {message.image_url && (
                     <div className="mb-3 mt-1">
                         <img 
-                            src={`http://localhost:8000${message.image_url}`} 
+                            src={`http://localhost:8001${message.image_url}`} 
                             alt="Uploaded content" 
                             className="rounded-lg max-h-64 object-cover border border-gray-200/50"
                         />
