@@ -128,7 +128,10 @@ class SendMessageToAllRequest(BaseModel):
 
 
 class UpdateMeetingStatusRequest(BaseModel):
-    status: str
+    status: str  # "active" or "ended"
+    # Add these fields for summary generation
+    summary_llm_provider: Optional[str] = "gemini"
+    summary_llm_model: Optional[str] = None
 
 
 # Image Schemas

@@ -225,20 +225,38 @@ async def send_message(meeting_id: int, message: schemas.SendMessageRequest, sta
     return StreamingResponse(generate_response(), media_type="text/plain")
 
 @router.put("/{meeting_id}/status")
-async def update_meeting_status(meeting_id: int, status_update: schemas.UpdateMeetingStatusRequest, db: Session = Depends(get_db)):
+async def update_meeting_status(
+    meeting_id: int, 
+    status_update: schemas.UpdateMeetingStatusRequest, 
+    db: Session = Depends(get_db)
+):
+    """Update meeting status (end meeting) and generate summary with specific LLM"""
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
     
     meeting.status = status_update.status
+    
     if status_update.status == "ended":
         meeting.ended_at = datetime.utcnow()
-        meeting.summary = await memory_service.generate_meeting_summary(db, meeting_id, llm_service)
+        
+        # Generate summary using the requested LLM
+        summary = await memory_service.generate_meeting_summary(
+            db, 
+            meeting_id, 
+            llm_service,
+            provider=status_update.summary_llm_provider,
+            model=status_update.summary_llm_model
+        )
+        meeting.summary = summary
+        
+        # Extract action items (still uses default/internal logic for now, or could update this too)
         await extract_action_items(db, meeting_id, llm_service)
     
     db.commit()
     db.refresh(meeting)
     return meeting
+
 
 @router.post("/{meeting_id}/ask-all")
 async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAllRequest, db: Session = Depends(get_db)):

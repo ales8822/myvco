@@ -1,4 +1,3 @@
-// stores/meetingStore.js
 import { create } from "zustand";
 import { meetingsApi } from "../lib/api";
 
@@ -80,12 +79,16 @@ export const useMeetingStore = create((set) => ({
     }));
   },
 
-  endMeeting: async (meetingId) => {
+  // Updated to accept config object
+  endMeeting: async (meetingId, llmConfig = {}) => {
     set({ loading: true, error: null });
     try {
       const response = await meetingsApi.updateStatus(meetingId, {
         status: "ended",
+        summary_llm_provider: llmConfig.provider || "gemini",
+        summary_llm_model: llmConfig.model || null,
       });
+
       set((state) => ({
         currentMeeting: response.data,
         meetings: state.meetings.map((m) =>

@@ -103,9 +103,11 @@ class MemoryService:
         self,
         db: Session,
         meeting_id: int,
-        llm_service
+        llm_service,
+        provider: str = "gemini",  # Added param
+        model: Optional[str] = None # Added param
     ) -> str:
-        """Generate a summary of the meeting using LLM"""
+        """Generate a summary of the meeting using specific LLM"""
         from ..models import MeetingImage
         
         messages = db.query(MeetingMessage)\
@@ -116,14 +118,12 @@ class MemoryService:
         if not messages:
             return "No discussion took place."
         
-        # Build conversation transcript
         transcript = []
         for msg in messages:
             transcript.append(f"{msg.sender_name}: {msg.content}")
         
         conversation = "\n".join(transcript)
         
-        # Get images discussed
         images = db.query(MeetingImage)\
             .filter(MeetingImage.meeting_id == meeting_id)\
             .all()
@@ -135,20 +135,21 @@ class MemoryService:
                 desc = img.image_metadata or "No description"
                 images_context += f"- {desc}\n"
         
-        # Generate summary using LLM
         system_prompt = (
             "You are a professional meeting summarizer. Create a concise summary of the meeting "
             "highlighting key points, decisions made, and action items. "
-            "If images were discussed, mention them in the summary."
+            "Format your response using Markdown (bold for topics, lists for points)."
         )
         
         prompt = f"Please summarize this meeting:\n\n{conversation}{images_context}"
         
         summary_parts = []
+        # Pass provider and model to the LLM service
         async for chunk in llm_service.generate_stream(
             prompt=prompt,
             system_prompt=system_prompt,
-            provider="gemini"
+            provider=provider,
+            model=model
         ):
             summary_parts.append(chunk)
         

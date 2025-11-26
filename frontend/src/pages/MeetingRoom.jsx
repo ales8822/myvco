@@ -24,6 +24,15 @@ export default function MeetingRoom() {
     const [showImageUpload, setShowImageUpload] = useState(false);
     const [showActionItems, setShowActionItems] = useState(false);
     const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
+    // End Meeting Modal State
+    const [showEndModal, setShowEndModal] = useState(false);
+    const [providers, setProviders] = useState(null);
+    const [summaryConfig, setSummaryConfig] = useState({
+        provider: 'gemini',
+        model: ''
+    });
+    const [isEnding, setIsEnding] = useState(false);
+
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -230,13 +239,15 @@ export default function MeetingRoom() {
             alert('Failed to upload image');
         }
     };
-
-    const handleEndMeeting = async () => {
-        if (confirm('Are you sure you want to end this meeting?')) {
-            await endMeeting(parseInt(meetingId));
-            navigate('/dashboard');
-        }
+    // This is the new function that uses the API with config
+    const confirmEndMeeting = async () => {
+        setIsEnding(true);
+        await endMeeting(parseInt(meetingId), summaryConfig);
+        setIsEnding(false);
+        setShowEndModal(false);
+        navigate('/dashboard');
     };
+    
 
     const participantStaff = currentMeeting?.participants?.map(p =>
         staff.find(s => s.id === p.staff_id)
@@ -278,12 +289,7 @@ export default function MeetingRoom() {
                                 {showActionItems ? 'Hide' : 'Show'} Action Items
                             </button>
                             {currentMeeting?.status === 'active' && (
-                                <button
-                                    onClick={handleEndMeeting}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                                >
-                                    End Meeting
-                                </button>
+                                <button onClick={() => setShowEndModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">End Meeting</button>
                             )}
                         </div>
                     </div>
@@ -440,6 +446,60 @@ export default function MeetingRoom() {
                     </div>
                 </div>
             </div>
+            {/* End Meeting Modal */}
+            {showEndModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
+                        <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
+                        
+                        <div className="mb-4">
+                            <label className="label">LLM Provider</label>
+                            <select
+                                className="input"
+                                value={summaryConfig.provider}
+                                onChange={(e) => setSummaryConfig({ ...summaryConfig, provider: e.target.value })}
+                            >
+                                <option value="gemini">Gemini</option>
+                                <option value="ollama">Ollama</option>
+                            </select>
+                        </div>
+
+                        {summaryConfig.provider === 'ollama' && providers?.ollama_models && (
+                            <div className="mb-6">
+                                <label className="label">Model</label>
+                                <select
+                                    className="input"
+                                    value={summaryConfig.model}
+                                    onChange={(e) => setSummaryConfig({ ...summaryConfig, model: e.target.value })}
+                                >
+                                    <option value="">Default Model</option>
+                                    {providers.ollama_models.map(model => (
+                                        <option key={model} value={model}>{model}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 mt-6">
+                            <button 
+                                onClick={confirmEndMeeting} 
+                                className="btn-primary flex-1 bg-red-600 hover:bg-red-700"
+                                disabled={isEnding}
+                            >
+                                {isEnding ? 'Generating Summary...' : 'Confirm End Meeting'}
+                            </button>
+                            <button 
+                                onClick={() => setShowEndModal(false)} 
+                                className="btn-secondary flex-1"
+                                disabled={isEnding}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
