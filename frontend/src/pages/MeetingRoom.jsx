@@ -34,7 +34,8 @@ export default function MeetingRoom() {
         model: ''
     });
     const [isEnding, setIsEnding] = useState(false);
-
+    // NEW: Track which agents are currently preparing a response
+    const [thinkingStaff, setThinkingStaff] = useState([]);
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -150,7 +151,7 @@ export default function MeetingRoom() {
             created_at: new Date().toISOString(),
         };
         addMessage(userMessage);
-        const messageToSend = inputMessage; // Store locally before clearing state
+        const messageToSend = inputMessage; 
         setInputMessage('');
         setIsStreaming(true);
 
@@ -164,28 +165,13 @@ export default function MeetingRoom() {
             return;
         }
 
-        // 3. Create thinking bubbles for everyone immediately
-        const thinkingIds = {};
-        participants.forEach(member => {
-            const thinkingId = `thinking-${member.id}-${Date.now()}`;
-            thinkingIds[member.id] = thinkingId;
-            addMessage({
-                id: thinkingId,
-                meeting_id: parseInt(meetingId),
-                staff_id: member.id,
-                sender_type: 'staff',
-                sender_name: member.name,
-                content: '',
-                isThinking: true,
-                created_at: new Date().toISOString(),
-            });
-        });
+        // 3. Set them all as "Thinking" initially (in a separate visual list)
+        setThinkingStaff(participants);
 
         // 4. Function to fetch response for a single staff member
         const fetchStaffResponse = async (member, index) => {
             try {
-                // Only the first request saves the user message to the DB to avoid duplicates
-                // All agents still receive the 'content' in the request body so they know what to reply to.
+                // Only the first request saves the user message to DB
                 const saveUserMsg = index === 0; 
                 
                 const response = await fetch(
@@ -204,10 +190,10 @@ export default function MeetingRoom() {
                 const decoder = new TextDecoder();
                 let streamedContent = '';
                 let isFirstChunk = true;
-                const thinkingId = thinkingIds[member.id];
 
+                // Prepare the message object, but DON'T add it to the store yet
                 const staffMessage = {
-                    id: Date.now() + Math.random(), // New permanent ID
+                    id: Date.now() + Math.random(),
                     meeting_id: parseInt(meetingId),
                     staff_id: member.id,
                     sender_type: 'staff',
@@ -224,22 +210,26 @@ export default function MeetingRoom() {
                     streamedContent += chunk;
                     staffMessage.content = streamedContent;
 
-                    // On first chunk, replace the "Thinking" bubble with the real message bubble
+                    // On the VERY FIRST chunk of data:
                     if (isFirstChunk) {
-                        updateMessage({ ...staffMessage, id: thinkingId, isThinking: false });
+                        // 1. Remove from "Thinking" list
+                        setThinkingStaff(prev => prev.filter(p => p.id !== member.id));
+                        // 2. Add to Main Message list (This places it at the bottom correctly)
+                        addMessage(staffMessage);
                         isFirstChunk = false;
                     } else {
-                        // Update content continuously
-                        updateMessage({ ...staffMessage, id: thinkingId });
+                        // Update existing message
+                        updateMessage({ ...staffMessage });
                     }
                 }
             } catch (error) {
                 console.error(`Error fetching response for ${member.name}:`, error);
+                // Ensure we remove them from thinking list if error occurs
+                setThinkingStaff(prev => prev.filter(p => p.id !== member.id));
             }
         };
 
-        // 5. Fire requests IN PARALLEL (Concurrency)
-        // map() creates an array of promises, Promise.all waits for them to finish
+        // 5. Fire requests IN PARALLEL
         await Promise.all(participants.map((member, index) => fetchStaffResponse(member, index)));
 
         setIsStreaming(false);
@@ -329,40 +319,38 @@ export default function MeetingRoom() {
                             {/* Messages Area */}
                             <div className="flex-1 flex flex-col">
                                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                                    {/* Summary for Ended Meetings - NOW WITH MARKDOWN */}
-                                    {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
-                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
-                                            <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-                                                <span>📝</span> Meeting Summary
-                                            </h3>
-                                            <div className="prose prose-sm max-w-none text-gray-800">
-                                                <ReactMarkdown
-                                                    remarkPlugins={[remarkGfm]}
-                                                    components={{
-                                                        ul: ({ node, ...props }) => <ul className="list-disc ml-4" {...props} />,
-                                                        ol: ({ node, ...props }) => <ol className="list-decimal ml-4" {...props} />,
-                                                        h1: ({ node, ...props }) => <h1 className="text-lg font-bold mt-2" {...props} />,
-                                                        h2: ({ node, ...props }) => <h2 className="text-base font-bold mt-2" {...props} />,
-                                                    }}
-                                                >
-                                                    {currentMeeting.summary}
-                                                </ReactMarkdown>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {messages.map((message, idx) => (
-                                        message.isThinking ? (
-                                            <ThinkingBubble key={`${message.id}-${idx}`} />
-                                        ) : (
-                                            <ChatBubble
-                                                key={`${message.id}-${idx}`}
-                                                message={message}
-                                            />
-                                        )
-                                    ))}
-                                    <div ref={messagesEndRef} />
+                            {/* Summary for Ended Meetings */}
+                            {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2"><span>📝</span> Meeting Summary</h3>
+                                    <div className="prose prose-sm max-w-none text-gray-800">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ul: ({node, ...props}) => <ul className="list-disc ml-4" {...props} />, ol: ({node, ...props}) => <ol className="list-decimal ml-4" {...props} />, h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-2" {...props} />, h2: ({node, ...props}) => <h2 className="text-base font-bold mt-2" {...props} /> }}>{currentMeeting.summary}</ReactMarkdown>
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* 1. Render Actual Messages (Resolved Responses) */}
+                            {messages.map((message, idx) => (
+                                <ChatBubble key={`${message.id}-${idx}`} message={message} />
+                            ))}
+
+                            {/* 2. Render Pending/Thinking Agents (Waiting for First Chunk) */}
+                            {thinkingStaff.map((member) => (
+                                <div key={`thinking-${member.id}`} className="flex justify-start">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1 flex-shrink-0">
+                                        {member.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="max-w-[80%] bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                                        <div className="text-xs opacity-70 mb-1">
+                                            <span className="font-medium">{member.name}</span> is thinking...
+                                        </div>
+                                        <ThinkingBubble />
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div ref={messagesEndRef} />
+                        </div>
 
                                 {/* Input Area */}
                                 {currentMeeting?.status === 'active' && (
