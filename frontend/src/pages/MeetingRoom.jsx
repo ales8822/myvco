@@ -1,9 +1,8 @@
-// frontend\src\pages\MeetingRoom.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMeetingStore } from '../stores/meetingStore';
 import { useStaffStore } from '../stores/staffStore';
-import { meetingsApi } from '../lib/api';
+import { meetingsApi, llmApi } from '../lib/api';
 import Sidebar from '../components/Sidebar';
 import ImageUpload from '../components/ImageUpload';
 import ActionItemsPanel from '../components/ActionItemsPanel';
@@ -11,8 +10,8 @@ import ImageSidebarPanel from '../components/ImageSidebarPanel';
 import ChatBubble from '../components/ChatBubble';
 import ThinkingBubble from '../components/ThinkingBubble';
 import Breadcrumbs from '../components/Breadcrumbs';
-import ReactMarkdown from 'react-markdown'; // Import Markdown
-import remarkGfm from 'remark-gfm'; // Import GFM
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function MeetingRoom() {
     const { meetingId } = useParams();
@@ -20,30 +19,56 @@ export default function MeetingRoom() {
     const { currentMeeting, messages, selectMeeting, addMessage, updateMessage, endMeeting } =
         useMeetingStore();
     const { staff } = useStaffStore();
+    
     const [inputMessage, setInputMessage] = useState('');
     const [selectedStaffId, setSelectedStaffId] = useState(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [showImageUpload, setShowImageUpload] = useState(false);
     const [showActionItems, setShowActionItems] = useState(false);
     const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
+    
     // End Meeting Modal State
     const [showEndModal, setShowEndModal] = useState(false);
     const [providers, setProviders] = useState(null);
+    const [isLoadingProviders, setIsLoadingProviders] = useState(false); // NEW: Loading state
     const [summaryConfig, setSummaryConfig] = useState({
         provider: 'gemini',
         model: ''
     });
     const [isEnding, setIsEnding] = useState(false);
-    // NEW: Track which agents are currently preparing a response
+    
     const [thinkingStaff, setThinkingStaff] = useState([]);
     const messagesEndRef = useRef(null);
     const chatContainerRef = useRef(null);
+
+    // Load Meeting Data
     useEffect(() => {
-        selectMeeting(parseInt(meetingId));
+        if (meetingId) {
+            selectMeeting(parseInt(meetingId));
+        }
     }, [meetingId]);
 
-    // NEW: Smart Scroll Logic
-    // Triggers only when the NUMBER of messages changes (new bubble), not content updates
+    // Load Providers on Mount (Separated for reliability)
+    useEffect(() => {
+        loadProviders();
+    }, []);
+
+    const loadProviders = async () => {
+        if (isLoadingProviders) return; // Prevent double fetch
+        setIsLoadingProviders(true);
+        console.log("Fetching LLM providers...");
+        try {
+            const response = await llmApi.getProviders();
+            console.log("LLM Providers received:", response.data);
+            setProviders(response.data);
+        } catch (error) {
+            console.error('Error loading providers:', error);
+        } finally {
+            setIsLoadingProviders(false);
+        }
+    };
+
+    // Smart Scroll Logic
     useEffect(() => {
         const container = chatContainerRef.current;
         if (!container) return;
@@ -51,28 +76,15 @@ export default function MeetingRoom() {
         const lastMessage = messages[messages.length - 1];
         const isUserMessage = lastMessage?.sender_type === 'user';
 
-        // Calculate if user was already at the bottom (with 150px buffer)
-        // Note: We check this BEFORE the scroll happens, but since this effect runs after render,
-        // we are checking the state *after* the new element insertion. 
-        // Ideally, we want to know if they were at bottom *before*, but checking current state 
-        // is usually sufficient for "stick to bottom" behavior.
         const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-        const wasAtBottom = distanceToBottom < 200; // Increased threshold for better UX
+        const wasAtBottom = distanceToBottom < 200;
 
-        // Scroll if:
-        // 1. It's the user's own message (always snap to bottom)
-        // 2. OR the user was already reading the latest messages (at the bottom)
         if (isUserMessage || wasAtBottom) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-        
-        // If the user was scrolled UP, we do NOTHING. The new message appends below, 
-        // the scrollbar shrinks, but the view stays fixed on what they are reading.
-        
     }, [messages.length, thinkingStaff.length]);
 
     useEffect(() => {
-        // Auto-select first participant
         if (currentMeeting?.participants && currentMeeting.participants.length > 0) {
             setSelectedStaffId(currentMeeting.participants[0].staff_id);
         }
@@ -95,7 +107,6 @@ export default function MeetingRoom() {
         setInputMessage('');
         setIsStreaming(true);
 
-        // Add temporary thinking message
         const thinkingMessageId = `thinking-${Date.now()}`;
         const selectedStaff = staff.find((s) => s.id === selectedStaffId);
         const thinkingMessage = {
@@ -115,13 +126,8 @@ export default function MeetingRoom() {
                 `/api/meetings/${meetingId}/messages?staff_id=${selectedStaffId}`,
                 {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        content: inputMessage,
-                        sender_name: 'User',
-                    }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: inputMessage, sender_name: 'User' }),
                 }
             );
 
@@ -143,7 +149,6 @@ export default function MeetingRoom() {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
                 const chunk = decoder.decode(value);
                 streamedContent += chunk;
                 staffMessage.content = streamedContent;
@@ -155,7 +160,6 @@ export default function MeetingRoom() {
                     updateMessage({ ...staffMessage, id: thinkingMessageId });
                 }
             }
-
             setIsStreaming(false);
         } catch (error) {
             console.error('Error sending message:', error);
@@ -166,7 +170,6 @@ export default function MeetingRoom() {
     const handleAskAll = async () => {
         if (!inputMessage.trim()) return;
 
-        // 1. Display User Message
         const userMessage = {
             id: Date.now(),
             meeting_id: parseInt(meetingId),
@@ -180,7 +183,6 @@ export default function MeetingRoom() {
         setInputMessage('');
         setIsStreaming(true);
 
-        // 2. Identify participants
         const participants = staff.filter(s => 
             currentMeeting?.participants?.some(p => p.staff_id === s.id)
         );
@@ -190,24 +192,17 @@ export default function MeetingRoom() {
             return;
         }
 
-        // 3. Set them all as "Thinking" initially (in a separate visual list)
         setThinkingStaff(participants);
 
-        // 4. Function to fetch response for a single staff member
         const fetchStaffResponse = async (member, index) => {
             try {
-                // Only the first request saves the user message to DB
                 const saveUserMsg = index === 0; 
-                
                 const response = await fetch(
                     `/api/meetings/${meetingId}/messages?staff_id=${member.id}&save_user_message=${saveUserMsg}`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            content: messageToSend, 
-                            sender_name: 'User' 
-                        }),
+                        body: JSON.stringify({ content: messageToSend, sender_name: 'User' }),
                     }
                 );
 
@@ -216,7 +211,6 @@ export default function MeetingRoom() {
                 let streamedContent = '';
                 let isFirstChunk = true;
 
-                // Prepare the message object, but DON'T add it to the store yet
                 const staffMessage = {
                     id: Date.now() + Math.random(),
                     meeting_id: parseInt(meetingId),
@@ -230,121 +224,109 @@ export default function MeetingRoom() {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value);
                     streamedContent += chunk;
                     staffMessage.content = streamedContent;
 
-                    // On the VERY FIRST chunk of data:
                     if (isFirstChunk) {
-                        // 1. Remove from "Thinking" list
                         setThinkingStaff(prev => prev.filter(p => p.id !== member.id));
-                        // 2. Add to Main Message list (This places it at the bottom correctly)
                         addMessage(staffMessage);
                         isFirstChunk = false;
                     } else {
-                        // Update existing message
                         updateMessage({ ...staffMessage });
                     }
                 }
             } catch (error) {
                 console.error(`Error fetching response for ${member.name}:`, error);
-                // Ensure we remove them from thinking list if error occurs
                 setThinkingStaff(prev => prev.filter(p => p.id !== member.id));
             }
         };
 
-        // 5. Fire requests IN PARALLEL
         await Promise.all(participants.map((member, index) => fetchStaffResponse(member, index)));
-
         setIsStreaming(false);
     };
 
-            const handleImageUpload = async (imageData) => {
-                try {
-                    const response = await meetingsApi.uploadImage(parseInt(meetingId), {
-                        image_data: imageData,
-                        description: inputMessage || 'Uploaded image',
-                    });
-                    const imageMessage = {
-                        id: Date.now(),
-                        meeting_id: parseInt(meetingId),
-                        sender_type: 'user',
-                        sender_name: 'User',
-                        content: `Uploaded image: ${response.data.description || 'No description'}`,
-                        image_url: response.data.image_url,
-                        created_at: new Date().toISOString(),
-                    };
-                    addMessage(imageMessage);
-                    setShowImageUpload(false);
-                    setInputMessage('');
-                    setImagesRefreshTrigger(Date.now());
-                } catch (error) {
-                    console.error('Error uploading image:', error);
-                    alert('Failed to upload image');
-                }
+    const handleImageUpload = async (imageData) => {
+        try {
+            const response = await meetingsApi.uploadImage(parseInt(meetingId), {
+                image_data: imageData,
+                description: inputMessage || 'Uploaded image',
+            });
+            const imageMessage = {
+                id: Date.now(),
+                meeting_id: parseInt(meetingId),
+                sender_type: 'user',
+                sender_name: 'User',
+                content: `Uploaded image: ${response.data.description || 'No description'}`,
+                image_url: response.data.image_url,
+                created_at: new Date().toISOString(),
             };
-            // This is the new function that uses the API with config
-            const confirmEndMeeting = async () => {
-                setIsEnding(true);
-                await endMeeting(parseInt(meetingId), summaryConfig);
-                setIsEnding(false);
-                setShowEndModal(false);
-                navigate('/dashboard');
-            };
+            addMessage(imageMessage);
+            setShowImageUpload(false);
+            setInputMessage('');
+            setImagesRefreshTrigger(Date.now());
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image');
+        }
+    };
 
+    const confirmEndMeeting = async () => {
+        setIsEnding(true);
+        await endMeeting(parseInt(meetingId), summaryConfig);
+        setIsEnding(false);
+        setShowEndModal(false);
+        navigate('/dashboard');
+    };
 
-            const participantStaff = currentMeeting?.participants?.map(p =>
-                staff.find(s => s.id === p.staff_id)
-            ).filter(Boolean) || [];
+    const handleProviderChange = (e) => {
+        const newProvider = e.target.value;
+        let newModel = '';
+        
+        if (newProvider === 'ollama') {
+            if (providers?.ollama_models && providers.ollama_models.length > 0) {
+                newModel = providers.ollama_models[0];
+            }
+        }
+        
+        setSummaryConfig({ provider: newProvider, model: newModel });
+    };
 
-            return (
-                <div className="flex">
-                    <Sidebar />
-                    <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50">
-                        {/* Header */}
-                        <div className="bg-white border-b border-gray-200 p-6">
-                            {/* Breadcrumbs */}
-                            <Breadcrumbs
-                                items={[
-                                    { label: 'Dashboard', path: '/dashboard' },
-                                    { label: currentMeeting?.title || 'Meeting' }
-                                ]}
-                            />
+    const participantStaff = currentMeeting?.participants?.map(p =>
+        staff.find(s => s.id === p.staff_id)
+    ).filter(Boolean) || [];
 
-                            <div className="flex justify-between items-center mt-2">
-                                <div>
-                                    <h1 className="text-2xl font-bold text-gray-900">
-                                        {currentMeeting?.title}
-                                    </h1>
-                                    <p className="text-sm text-gray-600">
-                                        {currentMeeting?.meeting_type} •{' '}
-                                        {currentMeeting?.status === 'active' ? (
-                                            <span className="text-green-600">Active</span>
-                                        ) : (
-                                            <span className="text-gray-600">Ended</span>
-                                        )} • {participantStaff.length} participants
-                                    </p>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setShowActionItems(!showActionItems)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                    >
-                                        {showActionItems ? 'Hide' : 'Show'} Action Items
-                                    </button>
-                                    {currentMeeting?.status === 'active' && (
-                                        <button onClick={() => setShowEndModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">End Meeting</button>
-                                    )}
-                                </div>
-                            </div>
+    return (
+        <div className="flex">
+            <Sidebar />
+            <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50">
+                <div className="bg-white border-b border-gray-200 p-6">
+                    <Breadcrumbs items={[{ label: 'Dashboard', path: '/dashboard' }, { label: currentMeeting?.title || 'Meeting' }]} />
+                    <div className="flex justify-between items-center mt-2">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">{currentMeeting?.title}</h1>
+                            <p className="text-sm text-gray-600">{currentMeeting?.meeting_type} • {currentMeeting?.status === 'active' ? <span className="text-green-600">Active</span> : <span className="text-gray-600">Ended</span>} • {participantStaff.length} participants</p>
                         </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowActionItems(!showActionItems)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{showActionItems ? 'Hide' : 'Show'} Action Items</button>
+                            {currentMeeting?.status === 'active' && (
+                                <button 
+                                    onClick={() => {
+                                        loadProviders();
+                                        setShowEndModal(true);
+                                    }} 
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                >
+                                    End Meeting
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
 
-                        <div className="flex-1 flex overflow-hidden">
-                            {/* Messages Area */}
-                            <div   className="flex-1 flex flex-col">
-                                <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {/* Summary for Ended Meetings */}
+                <div className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 flex flex-col">
+                        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                             {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
                                     <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2"><span>📝</span> Meeting Summary</h3>
@@ -353,13 +335,8 @@ export default function MeetingRoom() {
                                     </div>
                                 </div>
                             )}
-
-                            {/* 1. Render Actual Messages (Resolved Responses) */}
-                            {messages.map((message, idx) => (
-                                <ChatBubble key={`${message.id}-${idx}`} message={message} />
-                            ))}
-
-                            {/* 2. Render Pending/Thinking Agents (Waiting for First Chunk) */}
+                            {messages.map((message, idx) => <ChatBubble key={`${message.id}-${idx}`} message={message} />)}
+                            
                             {thinkingStaff.map((member) => (
                                 <div key={`thinking-${member.id}`} className="flex justify-start">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1 flex-shrink-0">
@@ -369,184 +346,137 @@ export default function MeetingRoom() {
                                         <div className="text-xs opacity-70 mb-1">
                                             <span className="font-medium">{member.name}</span> is thinking...
                                         </div>
-                                        <ThinkingBubble />
+                                        {/* Thinking Animation (Fallback if component fails) */}
+                                        <div className="flex gap-1 mt-1">
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
-                            
                             <div ref={messagesEndRef} />
                         </div>
 
-                                {/* Input Area */}
-                                {currentMeeting?.status === 'active' && (
-                                    <div className="bg-white border-t border-gray-200 p-6">
-                                        {showImageUpload ? (
-                                            <div className="mb-4">
-                                                <ImageUpload
-                                                    onImageSelect={(data) => { }}
-                                                    onUpload={handleImageUpload}
-                                                />
-                                                <button
-                                                    onClick={() => setShowImageUpload(false)}
-                                                    className="btn-secondary w-full mt-2"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <form onSubmit={handleSendMessage} className="space-y-4">
-                                                <div>
-                                                    <label className="label">Responding Staff Member</label>
-                                                    <select
-                                                        className="input"
-                                                        value={selectedStaffId || ''}
-                                                        onChange={(e) =>
-                                                            setSelectedStaffId(parseInt(e.target.value))
-                                                        }
-                                                        required
-                                                    >
-                                                        <option value="">Select staff member</option>
-                                                        {participantStaff.map((member) => (
-                                                            <option key={member.id} value={member.id}>
-                                                                {member.name} - {member.role}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div className="flex gap-3">
-                                                    <input
-                                                        type="text"
-                                                        className="input flex-1"
-                                                        value={inputMessage}
-                                                        onChange={(e) => setInputMessage(e.target.value)}
-                                                        placeholder="Type your message..."
-                                                        disabled={isStreaming}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowImageUpload(true)}
-                                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                                                        disabled={isStreaming}
-                                                    >
-                                                        🖼️
-                                                    </button>
-                                                    <button
-                                                        type="submit"
-                                                        className="btn-primary"
-                                                        disabled={isStreaming || !selectedStaffId}
-                                                    >
-                                                        {isStreaming ? 'Sending...' : 'Send'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleAskAll}
-                                                        className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700"
-                                                        disabled={isStreaming || participantStaff.length === 0}
-                                                    >
-                                                        Ask All
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        )}
+                        {currentMeeting?.status === 'active' && (
+                            <div className="bg-white border-t border-gray-200 p-6">
+                                {showImageUpload ? (
+                                    <div className="mb-4">
+                                        <ImageUpload onImageSelect={() => {}} onUpload={handleImageUpload} />
+                                        <button onClick={() => setShowImageUpload(false)} className="btn-secondary w-full mt-2">Cancel</button>
                                     </div>
+                                ) : (
+                                    <form onSubmit={handleSendMessage} className="space-y-4">
+                                        <div>
+                                            <label className="label">Responding Staff Member</label>
+                                            <select className="input" value={selectedStaffId || ''} onChange={(e) => setSelectedStaffId(parseInt(e.target.value))} required>
+                                                <option value="">Select staff member</option>
+                                                {participantStaff.map((member) => <option key={member.id} value={member.id}>{member.name} - {member.role}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <input type="text" className="input flex-1" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} placeholder="Type your message..." disabled={isStreaming} />
+                                            <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
+                                            <button type="submit" className="btn-primary" disabled={isStreaming || !selectedStaffId}>{isStreaming ? 'Sending...' : 'Send'}</button>
+                                            <button type="button" onClick={handleAskAll} className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700" disabled={isStreaming || participantStaff.length === 0}>Ask All</button>
+                                        </div>
+                                    </form>
                                 )}
                             </div>
+                        )}
+                    </div>
 
-                            <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
-                                <div className="mb-6">
-                                    <ImageSidebarPanel
-                                        meetingId={parseInt(meetingId)}
-                                        isActive={currentMeeting?.status === 'active'}
-                                        refreshTrigger={imagesRefreshTrigger}
-                                    />
-                                </div>
-
-                                <div className="mb-6">
-                                    <h3 className="font-semibold text-gray-900 mb-4">
-                                        Participants ({participantStaff.length})
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {participantStaff.map((member) => (
-                                            <div key={member.id} className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-sm font-bold text-white">
-                                                        {member.name.charAt(0).toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900 text-sm">
-                                                        {member.name}
-                                                    </p>
-                                                    <p className="text-xs text-gray-600">{member.role}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                    <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
+                        <div className="mb-6"><ImageSidebarPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} refreshTrigger={imagesRefreshTrigger} /></div>
+                        <div className="mb-6">
+                            <h3 className="font-semibold text-gray-900 mb-4">Participants ({participantStaff.length})</h3>
+                            <div className="space-y-3">
+                                {participantStaff.map((member) => (
+                                    <div key={member.id} className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center"><span className="text-sm font-bold text-white">{member.name.charAt(0).toUpperCase()}</span></div>
+                                        <div><p className="font-medium text-gray-900 text-sm">{member.name}</p><p className="text-xs text-gray-600">{member.role}</p></div>
                                     </div>
-                                </div>
-
-                                {showActionItems && (
-                                    <ActionItemsPanel
-                                        meetingId={parseInt(meetingId)}
-                                        isActive={currentMeeting?.status === 'active'}
-                                    />
-                                )}
+                                ))}
                             </div>
                         </div>
+                        {showActionItems && <ActionItemsPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} />}
                     </div>
-                    {/* End Meeting Modal */}
-                    {showEndModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                                <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
-                                <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
+                </div>
+            </div>
 
-                                <div className="mb-4">
-                                    <label className="label">LLM Provider</label>
+            {/* End Meeting Modal */}
+            {showEndModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
+                        <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
+                        
+                        <div className="mb-4">
+                            <label className="label">LLM Provider</label>
+                            <select
+                                className="input"
+                                value={summaryConfig.provider}
+                                onChange={handleProviderChange}
+                            >
+                                <option value="gemini">Gemini</option>
+                                <option value="ollama">Ollama</option>
+                            </select>
+                        </div>
+
+                        {/* Updated Logic for Showing Models with Loading State */}
+                        {summaryConfig.provider === 'ollama' && (
+                            <div className="mb-6">
+                                <label className="label">Model</label>
+                                {isLoadingProviders ? (
+                                    <div className="text-sm text-gray-600 flex items-center gap-2 py-2">
+                                        <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                                        Fetching available models...
+                                    </div>
+                                ) : providers?.ollama_models && providers.ollama_models.length > 0 ? (
                                     <select
                                         className="input"
-                                        value={summaryConfig.provider}
-                                        onChange={(e) => setSummaryConfig({ ...summaryConfig, provider: e.target.value })}
+                                        value={summaryConfig.model}
+                                        onChange={(e) => setSummaryConfig({ ...summaryConfig, model: e.target.value })}
                                     >
-                                        <option value="gemini">Gemini</option>
-                                        <option value="ollama">Ollama</option>
+                                        <option value="">Select a model...</option>
+                                        {providers.ollama_models.map(model => (
+                                            <option key={model} value={model}>{model}</option>
+                                        ))}
                                     </select>
-                                </div>
-
-                                {summaryConfig.provider === 'ollama' && providers?.ollama_models && (
-                                    <div className="mb-6">
-                                        <label className="label">Model</label>
-                                        <select
-                                            className="input"
-                                            value={summaryConfig.model}
-                                            onChange={(e) => setSummaryConfig({ ...summaryConfig, model: e.target.value })}
+                                ) : (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+                                        <p className="font-medium">⚠️ No models found</p>
+                                        <p className="mt-1">Is Ollama running? Check your connection.</p>
+                                        <button 
+                                            onClick={loadProviders} 
+                                            className="mt-2 text-red-700 underline hover:text-red-800 text-xs"
                                         >
-                                            <option value="">Default Model</option>
-                                            {providers.ollama_models.map(model => (
-                                                <option key={model} value={model}>{model}</option>
-                                            ))}
-                                        </select>
+                                            Retry Fetching Models
+                                        </button>
                                     </div>
                                 )}
-
-                                <div className="flex gap-3 mt-6">
-                                    <button
-                                        onClick={confirmEndMeeting}
-                                        className="btn-primary flex-1 bg-red-600 hover:bg-red-700"
-                                        disabled={isEnding}
-                                    >
-                                        {isEnding ? 'Generating Summary...' : 'Confirm End Meeting'}
-                                    </button>
-                                    <button
-                                        onClick={() => setShowEndModal(false)}
-                                        className="btn-secondary flex-1"
-                                        disabled={isEnding}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
                             </div>
+                        )}
+
+                        <div className="flex gap-3 mt-6">
+                            <button 
+                                onClick={confirmEndMeeting} 
+                                className="btn-primary flex-1 bg-red-600 hover:bg-red-700"
+                                disabled={isEnding}
+                            >
+                                {isEnding ? 'Generating Summary...' : 'Confirm End Meeting'}
+                            </button>
+                            <button 
+                                onClick={() => setShowEndModal(false)} 
+                                className="btn-secondary flex-1"
+                                disabled={isEnding}
+                            >
+                                Cancel
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
-            );
-        }
+            )}
+        </div>
+    );
+}
