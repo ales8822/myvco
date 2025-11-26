@@ -145,7 +145,13 @@ def get_meeting_messages(meeting_id: int, db: Session = Depends(get_db)):
     return db.query(MeetingMessage).filter(MeetingMessage.meeting_id == meeting_id).order_by(MeetingMessage.created_at).all()
 
 @router.post("/{meeting_id}/messages")
-async def send_message(meeting_id: int, message: schemas.SendMessageRequest, staff_id: int, db: Session = Depends(get_db)):
+async def send_message(
+    meeting_id: int, 
+    message: schemas.SendMessageRequest, 
+    staff_id: int, 
+    save_user_message: bool = True, # <--- Added flag
+    db: Session = Depends(get_db)
+):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
         raise HTTPException(status_code=400, detail="Meeting not active")
@@ -159,14 +165,18 @@ async def send_message(meeting_id: int, message: schemas.SendMessageRequest, sta
         raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
         
     staff = participant.staff
+    
+    # Extract primitives before entering async generator
     p_llm_provider = participant.llm_provider
     p_llm_model = participant.llm_model
     
-    user_message = MeetingMessage(
-        meeting_id=meeting_id, sender_type="user", sender_name=message.sender_name, content=message.content
-    )
-    db.add(user_message)
-    db.commit()
+    # Only save the user message if requested (prevents duplicates in Ask All)
+    if save_user_message:
+        user_message = MeetingMessage(
+            meeting_id=meeting_id, sender_type="user", sender_name=message.sender_name, content=message.content
+        )
+        db.add(user_message)
+        db.commit()
     
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
@@ -256,6 +266,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
     
     participants_query = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
     
+    # Eager load participant data to avoid detached session errors during streaming
     participants_data = []
     for p in participants_query:
         if p.staff:
@@ -293,9 +304,12 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 company_description=company_desc
             )
             
-            yield f"\n\n---STAFF:{p_data['name']}---\n"
+            # Send the staff delimiter first
+            yield f"---STAFF:{p_data['name']}---\n"
             
             response_parts = []
+            
+            # FIX: Explicitly iterate over the inner generator and yield its chunks
             async for chunk in llm_service.generate_stream(
                 prompt=message.content, 
                 system_prompt=system_prompt, 
@@ -306,8 +320,10 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 response_parts.append(chunk)
                 yield chunk
             
+            # Save the complete response to the database
             full_response = "".join(response_parts)
             
+            # Use a new session for saving since the main one is closed/unsafe in async generator
             with SessionLocal() as new_db:
                 staff_message = MeetingMessage(
                     meeting_id=meeting_id, staff_id=p_data['staff_id'], sender_type="staff",
