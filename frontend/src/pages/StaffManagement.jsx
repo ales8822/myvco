@@ -1,3 +1,4 @@
+// frontend\src\pages\StaffManagement.jsx
 import { useEffect, useState } from 'react';
 import { useCompanyStore } from '../stores/companyStore';
 import { useStaffStore } from '../stores/staffStore';

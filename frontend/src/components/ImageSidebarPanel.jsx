@@ -1,3 +1,4 @@
+// frontend\src\components\ImageSidebarPanel.jsx
 import { useState, useEffect } from 'react';
 import { meetingsApi } from '../lib/api';
 

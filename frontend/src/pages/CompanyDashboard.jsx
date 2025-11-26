@@ -1,3 +1,4 @@
+// frontend\src\pages\CompanyDashboard.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';

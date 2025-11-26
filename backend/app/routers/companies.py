@@ -1,3 +1,4 @@
+# backend\app\routers\companies.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -63,3 +64,4 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     db.delete(company)
     db.commit()
     return {"message": "Company deleted successfully"}
+

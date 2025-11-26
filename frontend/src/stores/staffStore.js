@@ -1,3 +1,4 @@
+// frontend\src\stores\staffStore.js
 import { create } from 'zustand';
 import { staffApi } from '../lib/api';
 
@@ -57,3 +58,4 @@ export const useStaffStore = create((set) => ({
         }
     },
 }));
+

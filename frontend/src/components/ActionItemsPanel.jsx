@@ -1,3 +1,4 @@
+// frontend\src\components\ActionItemsPanel.jsx
 import { useEffect, useState } from 'react';
 import { meetingsApi } from '../lib/api';
 
@@ -134,3 +135,4 @@ export default function ActionItemsPanel({ meetingId, isActive }) {
         </div>
     );
 }
+

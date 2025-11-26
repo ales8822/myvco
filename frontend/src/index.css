@@ -1,3 +1,4 @@
+/* frontend\src\index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -29,3 +30,4 @@
     @apply block text-sm font-medium text-gray-700 mb-2;
   }
 }
+

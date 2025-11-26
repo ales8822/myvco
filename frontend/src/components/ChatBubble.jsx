@@ -1,3 +1,4 @@
+// frontend\src\components\ChatBubble.jsx
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 

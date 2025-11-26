@@ -1,3 +1,4 @@
+# backend\app\models\company.py
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -18,3 +19,4 @@ class Company(Base):
     staff = relationship("Staff", back_populates="company", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="company", cascade="all, delete-orphan")
     knowledge = relationship("Knowledge", back_populates="company", cascade="all, delete-orphan")
+

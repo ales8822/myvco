@@ -1,3 +1,4 @@
+// frontend\src\App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useCompanyStore } from './stores/companyStore';
 import CompanySelector from './pages/CompanySelector';
@@ -35,3 +36,4 @@ function App() {
 }
 
 export default App;
+

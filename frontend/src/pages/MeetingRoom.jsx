@@ -1,3 +1,4 @@
+// frontend\src\pages\MeetingRoom.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMeetingStore } from '../stores/meetingStore';
@@ -8,6 +9,7 @@ import ImageUpload from '../components/ImageUpload';
 import ActionItemsPanel from '../components/ActionItemsPanel';
 import ImageSidebarPanel from '../components/ImageSidebarPanel';
 import ChatBubble from '../components/ChatBubble';
+import ThinkingBubble from '../components/ThinkingBubble';
 import Breadcrumbs from '../components/Breadcrumbs';
 import ReactMarkdown from 'react-markdown'; // Import Markdown
 import remarkGfm from 'remark-gfm'; // Import GFM
@@ -67,6 +69,21 @@ export default function MeetingRoom() {
         setInputMessage('');
         setIsStreaming(true);
 
+        // Add temporary thinking message
+        const thinkingMessageId = `thinking-${Date.now()}`;
+        const selectedStaff = staff.find((s) => s.id === selectedStaffId);
+        const thinkingMessage = {
+            id: thinkingMessageId,
+            meeting_id: parseInt(meetingId),
+            staff_id: selectedStaffId,
+            sender_type: 'staff',
+            sender_name: selectedStaff?.name || 'Staff',
+            content: '',
+            isThinking: true,
+            created_at: new Date().toISOString(),
+        };
+        addMessage(thinkingMessage);
+
         try {
             const response = await fetch(
                 `/api/meetings/${meetingId}/messages?staff_id=${selectedStaffId}`,
@@ -85,8 +102,7 @@ export default function MeetingRoom() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let streamedContent = '';
-
-            const selectedStaff = staff.find((s) => s.id === selectedStaffId);
+            let isFirstChunk = true;
 
             const staffMessage = {
                 id: Date.now() + 1,
@@ -98,8 +114,6 @@ export default function MeetingRoom() {
                 created_at: new Date().toISOString(),
             };
 
-            addMessage(staffMessage);
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -107,7 +121,13 @@ export default function MeetingRoom() {
                 const chunk = decoder.decode(value);
                 streamedContent += chunk;
                 staffMessage.content = streamedContent;
-                updateMessage({ ...staffMessage });
+
+                if (isFirstChunk) {
+                    updateMessage({ ...staffMessage, id: thinkingMessageId, isThinking: false });
+                    isFirstChunk = false;
+                } else {
+                    updateMessage({ ...staffMessage, id: thinkingMessageId });
+                }
             }
 
             setIsStreaming(false);
@@ -133,6 +153,23 @@ export default function MeetingRoom() {
         setInputMessage('');
         setIsStreaming(true);
 
+        // Add thinking messages for ALL participants
+        const thinkingIds = {};
+        participantStaff.forEach(member => {
+            const thinkingId = `thinking-${member.id}-${Date.now()}`;
+            thinkingIds[member.name] = thinkingId;
+            addMessage({
+                id: thinkingId,
+                meeting_id: parseInt(meetingId),
+                staff_id: member.id,
+                sender_type: 'staff',
+                sender_name: member.name,
+                content: '',
+                isThinking: true,
+                created_at: new Date().toISOString(),
+            });
+        });
+
         try {
             const response = await fetch(
                 `/api/meetings/${meetingId}/ask-all`,
@@ -150,8 +187,9 @@ export default function MeetingRoom() {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let currentStaffName = null;
-            let streamedContent = '';
+
+            const staffBuffers = {}; // { 'Staff Name': 'content so far' }
+            const staffStarted = {}; // { 'Staff Name': boolean }
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -159,53 +197,58 @@ export default function MeetingRoom() {
 
                 const chunk = decoder.decode(value);
 
-                const staffMatch = chunk.match(/---STAFF:(.+?)---/);
-                if (staffMatch) {
-                    if (currentStaffName && streamedContent) {
-                        const staffMember = staff.find(s => s.name === currentStaffName);
-                        const staffMessage = {
-                            id: Date.now() + Math.random(),
-                            meeting_id: parseInt(meetingId),
-                            staff_id: staffMember?.id,
-                            sender_type: 'staff',
-                            sender_name: currentStaffName,
-                            content: streamedContent.trim(),
-                            created_at: new Date().toISOString(),
-                        };
-                        addMessage(staffMessage);
-                    }
-                    currentStaffName = staffMatch[1];
-                    streamedContent = '';
-                } else {
-                    streamedContent += chunk;
-                    if (currentStaffName) {
-                        const staffMember = staff.find(s => s.name === currentStaffName);
-                        const staffMessage = {
-                            id: `temp-${currentStaffName}`,
-                            meeting_id: parseInt(meetingId),
-                            staff_id: staffMember?.id,
-                            sender_type: 'staff',
-                            sender_name: currentStaffName,
-                            content: streamedContent.trim(),
-                            created_at: new Date().toISOString(),
-                        };
-                        updateMessage(staffMessage);
+                // Simple buffer accumulation and regex split
+                const parts = chunk.split(/(---STAFF:.+?---)/);
+
+                let currentStaffName = null;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    if (!part) continue;
+
+                    const match = part.match(/---STAFF:(.+?)---/);
+                    if (match) {
+                        currentStaffName = match[1];
+                        if (!staffBuffers[currentStaffName]) {
+                            staffBuffers[currentStaffName] = '';
+                        }
+                    } else if (currentStaffName) {
+                        // This is content for currentStaffName
+                        staffBuffers[currentStaffName] += part;
+
+                        // Update the UI
+                        const thinkingId = thinkingIds[currentStaffName];
+                        if (thinkingId) {
+                            const staffMember = staff.find(s => s.name === currentStaffName);
+
+                            // If this is the first real content, switch from thinking to normal
+                            if (!staffStarted[currentStaffName]) {
+                                staffStarted[currentStaffName] = true;
+                                updateMessage({
+                                    id: thinkingId,
+                                    meeting_id: parseInt(meetingId),
+                                    staff_id: staffMember?.id,
+                                    sender_type: 'staff',
+                                    sender_name: currentStaffName,
+                                    content: staffBuffers[currentStaffName],
+                                    isThinking: false,
+                                    created_at: new Date().toISOString(),
+                                });
+                            } else {
+                                updateMessage({
+                                    id: thinkingId,
+                                    meeting_id: parseInt(meetingId),
+                                    staff_id: staffMember?.id,
+                                    sender_type: 'staff',
+                                    sender_name: currentStaffName,
+                                    content: staffBuffers[currentStaffName],
+                                    isThinking: false, // Ensure it stays false
+                                    created_at: new Date().toISOString(),
+                                });
+                            }
+                        }
                     }
                 }
-            }
-
-            if (currentStaffName && streamedContent) {
-                const staffMember = staff.find(s => s.name === currentStaffName);
-                const staffMessage = {
-                    id: Date.now() + Math.random(),
-                    meeting_id: parseInt(meetingId),
-                    staff_id: staffMember?.id,
-                    sender_type: 'staff',
-                    sender_name: currentStaffName,
-                    content: streamedContent.trim(),
-                    created_at: new Date().toISOString(),
-                };
-                addMessage(staffMessage);
             }
 
             setIsStreaming(false);
@@ -247,7 +290,7 @@ export default function MeetingRoom() {
         setShowEndModal(false);
         navigate('/dashboard');
     };
-    
+
 
     const participantStaff = currentMeeting?.participants?.map(p =>
         staff.find(s => s.id === p.staff_id)
@@ -260,11 +303,11 @@ export default function MeetingRoom() {
                 {/* Header */}
                 <div className="bg-white border-b border-gray-200 p-6">
                     {/* Breadcrumbs */}
-                    <Breadcrumbs 
+                    <Breadcrumbs
                         items={[
                             { label: 'Dashboard', path: '/dashboard' },
                             { label: currentMeeting?.title || 'Meeting' }
-                        ]} 
+                        ]}
                     />
 
                     <div className="flex justify-between items-center mt-2">
@@ -306,13 +349,13 @@ export default function MeetingRoom() {
                                         <span>📝</span> Meeting Summary
                                     </h3>
                                     <div className="prose prose-sm max-w-none text-gray-800">
-                                        <ReactMarkdown 
+                                        <ReactMarkdown
                                             remarkPlugins={[remarkGfm]}
                                             components={{
-                                                ul: ({node, ...props}) => <ul className="list-disc ml-4" {...props} />,
-                                                ol: ({node, ...props}) => <ol className="list-decimal ml-4" {...props} />,
-                                                h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-2" {...props} />,
-                                                h2: ({node, ...props}) => <h2 className="text-base font-bold mt-2" {...props} />,
+                                                ul: ({ node, ...props }) => <ul className="list-disc ml-4" {...props} />,
+                                                ol: ({ node, ...props }) => <ol className="list-decimal ml-4" {...props} />,
+                                                h1: ({ node, ...props }) => <h1 className="text-lg font-bold mt-2" {...props} />,
+                                                h2: ({ node, ...props }) => <h2 className="text-base font-bold mt-2" {...props} />,
                                             }}
                                         >
                                             {currentMeeting.summary}
@@ -322,10 +365,14 @@ export default function MeetingRoom() {
                             )}
 
                             {messages.map((message, idx) => (
-                                <ChatBubble
-                                    key={`${message.id}-${idx}`}
-                                    message={message}
-                                />
+                                message.isThinking ? (
+                                    <ThinkingBubble key={`${message.id}-${idx}`} />
+                                ) : (
+                                    <ChatBubble
+                                        key={`${message.id}-${idx}`}
+                                        message={message}
+                                    />
+                                )
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
@@ -452,7 +499,7 @@ export default function MeetingRoom() {
                     <div className="bg-white rounded-xl p-8 max-w-md w-full">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
                         <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
-                        
+
                         <div className="mb-4">
                             <label className="label">LLM Provider</label>
                             <select
@@ -482,15 +529,15 @@ export default function MeetingRoom() {
                         )}
 
                         <div className="flex gap-3 mt-6">
-                            <button 
-                                onClick={confirmEndMeeting} 
+                            <button
+                                onClick={confirmEndMeeting}
                                 className="btn-primary flex-1 bg-red-600 hover:bg-red-700"
                                 disabled={isEnding}
                             >
                                 {isEnding ? 'Generating Summary...' : 'Confirm End Meeting'}
                             </button>
-                            <button 
-                                onClick={() => setShowEndModal(false)} 
+                            <button
+                                onClick={() => setShowEndModal(false)}
                                 className="btn-secondary flex-1"
                                 disabled={isEnding}
                             >

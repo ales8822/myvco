@@ -1,3 +1,4 @@
+// frontend\src\stores\companyStore.js
 import { create } from 'zustand';
 import { companiesApi } from '../lib/api';
 
@@ -73,3 +74,4 @@ export const useCompanyStore = create((set) => ({
         }
     },
 }));
+

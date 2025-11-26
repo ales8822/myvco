@@ -1,3 +1,4 @@
+// frontend\src\pages\KnowledgeBase.jsx
 import { useEffect, useState } from 'react';
 import { useCompanyStore } from '../stores/companyStore';
 import { knowledgeApi } from '../lib/api';
@@ -190,3 +191,4 @@ export default function KnowledgeBase() {
         </div>
     );
 }
+

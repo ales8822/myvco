@@ -1,3 +1,4 @@
+// frontend\src\components\ImageUpload.jsx
 import { useState } from 'react';
 
 export default function ImageUpload({ onImageSelect, onUpload }) {
@@ -75,3 +76,4 @@ export default function ImageUpload({ onImageSelect, onUpload }) {
         </div>
     );
 }
+

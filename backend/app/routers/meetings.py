@@ -1,3 +1,4 @@
+# backend\app\routers\meetings.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -139,7 +140,6 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
         "participants": participants_data
     }
 
-# IMPORTANT: Place specific routes like /messages BEFORE generic parameters if any overlap exists
 @router.get("/{meeting_id}/messages", response_model=List[schemas.MeetingMessage])
 def get_meeting_messages(meeting_id: int, db: Session = Depends(get_db)):
     return db.query(MeetingMessage).filter(MeetingMessage.meeting_id == meeting_id).order_by(MeetingMessage.created_at).all()
@@ -158,11 +158,7 @@ async def send_message(meeting_id: int, message: schemas.SendMessageRequest, sta
     if not participant:
         raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
         
-    # Eager load staff info
     staff = participant.staff
-    
-    # EXTRACT VALUES HERE (Fix for DetachedInstanceError)
-    # These primitives can be safely passed to the async generator
     p_llm_provider = participant.llm_provider
     p_llm_model = participant.llm_model
     
@@ -192,26 +188,17 @@ async def send_message(meeting_id: int, message: schemas.SendMessageRequest, sta
     
     async def generate_response():
         response_parts = []
-        # Use extracted primitives instead of participant object
         async for chunk in llm_service.generate_stream(
             prompt=message.content, 
             system_prompt=system_prompt, 
-            provider=p_llm_provider, # <--- Use local variable
-            model=p_llm_model,       # <--- Use local variable
+            provider=p_llm_provider, 
+            model=p_llm_model,       
             image_path=image_path
         ):
             response_parts.append(chunk)
             yield chunk
         
         full_response = "".join(response_parts)
-        # Note: We need a NEW session to save the response because the dependency session 
-        # will be closed by the time this generator finishes.
-        # However, for simplicity in this architecture, we often accept the trade-off 
-        # that the response is streamed but only saved if we handle the session manually 
-        # or if we save it AFTER the stream in a background task.
-        #
-        # BUT: The simplest fix for saving within the stream without complex session management
-        # is to re-open a session just for the save.
         
         from ..database import SessionLocal
         with SessionLocal() as new_db:
@@ -240,7 +227,6 @@ async def update_meeting_status(
     if status_update.status == "ended":
         meeting.ended_at = datetime.utcnow()
         
-        # Generate summary using the requested LLM
         summary = await memory_service.generate_meeting_summary(
             db, 
             meeting_id, 
@@ -249,14 +235,11 @@ async def update_meeting_status(
             model=status_update.summary_llm_model
         )
         meeting.summary = summary
-        
-        # Extract action items (still uses default/internal logic for now, or could update this too)
         await extract_action_items(db, meeting_id, llm_service)
     
     db.commit()
     db.refresh(meeting)
     return meeting
-
 
 @router.post("/{meeting_id}/ask-all")
 async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAllRequest, db: Session = Depends(get_db)):
@@ -271,10 +254,9 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
     db.add(user_message)
     db.commit()
     
-    # Eager load everything we need before the session might close or be used in async
-    participants_data = []
     participants_query = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
     
+    participants_data = []
     for p in participants_query:
         if p.staff:
             participants_data.append({
@@ -287,13 +269,11 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 'llm_model': p.llm_model
             })
             
-    # Get Contexts immediately
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, company_id)
     image_context = memory_service.get_current_meeting_image(db, meeting_id)
     image_path = memory_service.get_current_image_path(db, meeting_id)
     
-    # Get Company info
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
     company_name = company.name if company else "MyVCO"
     company_desc = company.description if company else ""
@@ -328,7 +308,6 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
             
             full_response = "".join(response_parts)
             
-            # New session for saving
             with SessionLocal() as new_db:
                 staff_message = MeetingMessage(
                     meeting_id=meeting_id, staff_id=p_data['staff_id'], sender_type="staff",
@@ -339,7 +318,6 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
     
     return StreamingResponse(generate_all_responses(), media_type="text/plain")
 
-# Rest of file unchanged...
 @router.post("/{meeting_id}/upload-image")
 async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreate, db: Session = Depends(get_db)):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()

@@ -1,3 +1,4 @@
+// frontend\src\pages\CompanySelector.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
@@ -169,3 +170,4 @@ export default function CompanySelector() {
         </div>
     );
 }
+

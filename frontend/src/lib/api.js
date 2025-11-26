@@ -1,3 +1,4 @@
+// frontend\src\lib\api.js
 import axios from "axios";
 
 const api = axios.create({
@@ -63,3 +64,4 @@ export const llmApi = {
 };
 
 export default api;
+

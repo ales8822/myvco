@@ -1,3 +1,4 @@
+# backend\app\routers\llm.py
 from fastapi import APIRouter
 from ..services import llm_service
 from ..config import settings
@@ -28,3 +29,4 @@ async def get_ollama_models():
         "models": models,
         "base_url": settings.ollama_base_url
     }
+

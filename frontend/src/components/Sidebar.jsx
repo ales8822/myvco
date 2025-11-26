@@ -1,3 +1,4 @@
+// frontend\src\components\Sidebar.jsx
 import { Link } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
 
@@ -42,3 +43,4 @@ export default function Sidebar() {
         </div>
     );
 }
+

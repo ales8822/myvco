@@ -1,3 +1,4 @@
+# backend\app\services\llm_service.py
 import google.generativeai as genai
 import httpx
 import json

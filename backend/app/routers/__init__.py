@@ -1,3 +1,4 @@
+# backend\app\routers\__init__.py
 # Import routers for easy access
 from .companies import router as companies_router
 from .staff import router as staff_router
@@ -12,3 +13,4 @@ __all__ = [
     "knowledge_router",
     "llm_router"
 ]
+

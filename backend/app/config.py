@@ -1,3 +1,4 @@
+# backend\app\config.py
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import List
@@ -28,3 +29,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

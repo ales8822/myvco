@@ -1,3 +1,4 @@
+<!-- README.md -->
 # MyVCO - My Virtual Company
 
 A professional application for managing virtual companies with AI-powered staff members who maintain context, memory, and engage in meaningful meetings.
@@ -177,3 +178,4 @@ DEFAULT_MODEL=gemini-2.0-flash
 ## 📄 License
 
 MIT License - feel free to use this project however you'd like!
+

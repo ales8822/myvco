@@ -1,3 +1,4 @@
+# backend\app\routers\knowledge.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -43,3 +44,4 @@ def delete_knowledge(knowledge_id: int, db: Session = Depends(get_db)):
     db.delete(knowledge)
     db.commit()
     return {"message": "Knowledge entry deleted successfully"}
+
