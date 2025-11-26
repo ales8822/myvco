@@ -37,14 +37,39 @@ export default function MeetingRoom() {
     // NEW: Track which agents are currently preparing a response
     const [thinkingStaff, setThinkingStaff] = useState([]);
     const messagesEndRef = useRef(null);
-
+    const chatContainerRef = useRef(null);
     useEffect(() => {
         selectMeeting(parseInt(meetingId));
     }, [meetingId]);
 
+    // NEW: Smart Scroll Logic
+    // Triggers only when the NUMBER of messages changes (new bubble), not content updates
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        const container = chatContainerRef.current;
+        if (!container) return;
+
+        const lastMessage = messages[messages.length - 1];
+        const isUserMessage = lastMessage?.sender_type === 'user';
+
+        // Calculate if user was already at the bottom (with 150px buffer)
+        // Note: We check this BEFORE the scroll happens, but since this effect runs after render,
+        // we are checking the state *after* the new element insertion. 
+        // Ideally, we want to know if they were at bottom *before*, but checking current state 
+        // is usually sufficient for "stick to bottom" behavior.
+        const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        const wasAtBottom = distanceToBottom < 200; // Increased threshold for better UX
+
+        // Scroll if:
+        // 1. It's the user's own message (always snap to bottom)
+        // 2. OR the user was already reading the latest messages (at the bottom)
+        if (isUserMessage || wasAtBottom) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // If the user was scrolled UP, we do NOTHING. The new message appends below, 
+        // the scrollbar shrinks, but the view stays fixed on what they are reading.
+        
+    }, [messages.length, thinkingStaff.length]);
 
     useEffect(() => {
         // Auto-select first participant
@@ -317,8 +342,8 @@ export default function MeetingRoom() {
 
                         <div className="flex-1 flex overflow-hidden">
                             {/* Messages Area */}
-                            <div className="flex-1 flex flex-col">
-                                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div   className="flex-1 flex flex-col">
+                                <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                             {/* Summary for Ended Meetings */}
                             {currentMeeting?.status === 'ended' && currentMeeting?.summary && (
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
