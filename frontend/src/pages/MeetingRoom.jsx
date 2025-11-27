@@ -50,11 +50,19 @@ export default function MeetingRoom() {
 
     // Load Providers on Mount (Separated for reliability)
     useEffect(() => {
-        loadProviders();
+        // Only load if we don't have them yet
+        if (!providers) {
+            loadProviders();
+        }
     }, []);
 
-    const loadProviders = async () => {
-        if (isLoadingProviders) return; // Prevent double fetch
+    const loadProviders = async (force = false) => {
+        // Stop if already loading
+        if (isLoadingProviders) return;
+        
+        // Stop if we already have data and aren't forcing a refresh
+        if (providers && !force) return;
+
         setIsLoadingProviders(true);
         console.log("Fetching LLM providers...");
         try {
@@ -312,7 +320,10 @@ export default function MeetingRoom() {
                             {currentMeeting?.status === 'active' && (
                                 <button 
                                     onClick={() => {
-                                        loadProviders();
+                                        // We pass 'true' here to force a refresh only when the user 
+                                        // explicitly opens the menu, ensuring the model list is up to date
+                                        // without spamming it during normal page usage.
+                                        loadProviders(true); 
                                         setShowEndModal(true);
                                     }} 
                                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
