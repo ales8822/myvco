@@ -49,7 +49,10 @@ def get_department_staff(department_id: int, db: Session = Depends(get_db)):
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
     
-    staff_list = db.query(Staff).filter(Staff.department_id == department_id).all()
+    staff_list = db.query(Staff).filter(
+        Staff.department_id == department_id,
+        Staff.is_active == True
+    ).all()
     
     # Add department_name to each staff member
     result = []
@@ -64,6 +67,9 @@ def get_department_staff(department_id: int, db: Session = Depends(get_db)):
             "personality": staff_member.personality,
             "expertise": staff_member.expertise,
             "system_prompt": staff_member.system_prompt,
+            "is_active": staff_member.is_active,
+            "fired_at": staff_member.fired_at,
+            "fired_reason": staff_member.fired_reason,
             "created_at": staff_member.created_at
         }
         result.append(schemas.Staff(**staff_dict))

@@ -82,10 +82,16 @@ class Staff(StaffBase):
     department_name: Optional[str] = None
     is_active: bool = True
     fired_at: Optional[datetime] = None
+    fired_reason: Optional[str] = None
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+
+class StaffRestore(BaseModel):
+    company_id: Optional[int] = None
+    department_id: Optional[int] = None
 
 
 # Meeting Schemas

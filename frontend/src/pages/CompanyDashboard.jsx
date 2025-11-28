@@ -29,6 +29,16 @@ export default function CompanyDashboard() {
         expertise: '',
         department_id: '',
     });
+    const [showFireModal, setShowFireModal] = useState(false);
+    const [fireReason, setFireReason] = useState('');
+    const [staffToFire, setStaffToFire] = useState(null);
+
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [staffToRestore, setStaffToRestore] = useState(null);
+    const [restoreData, setRestoreData] = useState({ company_id: '', department_id: '' });
+
+    const [showFiredDetailsModal, setShowFiredDetailsModal] = useState(false);
+    const [selectedFiredStaff, setSelectedFiredStaff] = useState(null);
 
     // LLM State
     const [providers, setProviders] = useState(null);
@@ -106,19 +116,48 @@ export default function CompanyDashboard() {
         }
     };
 
-    const handleFireStaff = async (staffId) => {
-        if (window.confirm('Are you sure you want to fire this staff member? They will be moved to the archive.')) {
-            await removeStaff(staffId);
+    const handleFireClick = (member) => {
+        setStaffToFire(member);
+        setFireReason('');
+        setShowFireModal(true);
+    };
+
+    const handleConfirmFire = async (e) => {
+        e.preventDefault();
+        if (staffToFire) {
+            await removeStaff(staffToFire.id, fireReason);
+            setShowFireModal(false);
+            setStaffToFire(null);
             if (selectedDepartment) {
                 handleDepartmentClick(selectedDepartment);
             }
         }
     };
 
-    const handleRestoreStaff = async (staffId) => {
-        if (window.confirm('Are you sure you want to restore this staff member?')) {
-            await restoreStaff(staffId);
+    const handleRestoreClick = (member) => {
+        setStaffToRestore(member);
+        setRestoreData({
+            company_id: currentCompany.id,
+            department_id: member.department_id || ''
+        });
+        setShowRestoreModal(true);
+    };
+
+    const handleConfirmRestore = async (e) => {
+        e.preventDefault();
+        if (staffToRestore) {
+            await restoreStaff(staffToRestore.id, {
+                company_id: parseInt(restoreData.company_id),
+                department_id: restoreData.department_id ? parseInt(restoreData.department_id) : null
+            });
+            setShowRestoreModal(false);
+            setStaffToRestore(null);
         }
+    };
+
+    const handleFiredStaffClick = (member) => {
+        setSelectedFiredStaff(member);
+        setShowFiredDetailsModal(true);
     };
 
     const handleCreateMeeting = async (e) => {
@@ -276,7 +315,7 @@ export default function CompanyDashboard() {
                                                         ✏️
                                                     </button>
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); handleFireStaff(member.id); }}
+                                                        onClick={(e) => { e.stopPropagation(); handleFireClick(member); }}
                                                         className="p-1.5 bg-white text-red-600 hover:bg-red-50 rounded shadow-sm border border-gray-200"
                                                         title="Fire Staff"
                                                     >
@@ -334,11 +373,15 @@ export default function CompanyDashboard() {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {firedStaff?.map((member) => (
-                                        <div key={member.id} className="bg-white p-4 rounded-lg border border-red-100 shadow-sm opacity-75 hover:opacity-100 transition-opacity">
+                                        <div
+                                            key={member.id}
+                                            className="bg-white p-4 rounded-lg border border-red-100 shadow-sm opacity-75 hover:opacity-100 transition-opacity cursor-pointer"
+                                            onClick={() => handleFiredStaffClick(member)}
+                                        >
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="font-semibold text-gray-900">{member.name}</h3>
                                                 <button
-                                                    onClick={() => handleRestoreStaff(member.id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleRestoreClick(member); }}
                                                     className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
                                                 >
                                                     Restore
@@ -601,6 +644,151 @@ export default function CompanyDashboard() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Fire Staff Modal */}
+            {showFireModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Fire Staff Member</h2>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to fire <span className="font-semibold">{staffToFire?.name}</span>?
+                            They will be moved to the archive.
+                        </p>
+                        <form onSubmit={handleConfirmFire}>
+                            <div className="mb-6">
+                                <label className="label">Reason for Firing</label>
+                                <textarea
+                                    className="input"
+                                    rows="3"
+                                    value={fireReason}
+                                    onChange={(e) => setFireReason(e.target.value)}
+                                    placeholder="Optional reason..."
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button type="submit" className="btn-primary bg-red-600 hover:bg-red-700 flex-1">Fire</button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowFireModal(false);
+                                        setStaffToFire(null);
+                                    }}
+                                    className="btn-secondary flex-1"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Restore Staff Modal */}
+            {showRestoreModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Restore Staff Member</h2>
+                        <form onSubmit={handleConfirmRestore}>
+                            <div className="mb-4">
+                                <label className="label">Department</label>
+                                <select
+                                    className="input"
+                                    value={restoreData.department_id}
+                                    onChange={(e) => setRestoreData({ ...restoreData, department_id: e.target.value })}
+                                >
+                                    <option value="">No Department</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-3">
+                                <button type="submit" className="btn-primary bg-green-600 hover:bg-green-700 flex-1">Restore</button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowRestoreModal(false);
+                                        setStaffToRestore(null);
+                                    }}
+                                    className="btn-secondary flex-1"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Fired Staff Details Modal */}
+            {showFiredDetailsModal && selectedFiredStaff && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-lg w-full">
+                        <div className="flex justify-between items-start mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900">{selectedFiredStaff.name}</h2>
+                            <button
+                                onClick={() => setShowFiredDetailsModal(false)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Role</h3>
+                                <p className="text-gray-900">{selectedFiredStaff.role}</p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Fired Date</h3>
+                                <p className="text-gray-900">{new Date(selectedFiredStaff.fired_at).toLocaleString()}</p>
+                            </div>
+
+                            {selectedFiredStaff.fired_reason && (
+                                <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                                    <h3 className="text-sm font-medium text-red-800 mb-1">Reason for Firing</h3>
+                                    <p className="text-red-900">{selectedFiredStaff.fired_reason}</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Personality</h3>
+                                <p className="text-gray-900">{selectedFiredStaff.personality || 'N/A'}</p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-500">Expertise</h3>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {selectedFiredStaff.expertise && selectedFiredStaff.expertise.length > 0 ? (
+                                        selectedFiredStaff.expertise.map((skill, idx) => (
+                                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                                {skill}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-sm">None listed</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex justify-end">
+                            <button
+                                onClick={() => {
+                                    setShowFiredDetailsModal(false);
+                                    handleRestoreClick(selectedFiredStaff);
+                                }}
+                                className="btn-primary bg-green-600 hover:bg-green-700"
+                            >
+                                Restore Staff
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

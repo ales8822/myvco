@@ -34,8 +34,8 @@ export const staffApi = {
   create: (companyId, data) =>
     api.post(`/staff/companies/${companyId}/staff`, data),
   update: (id, data) => api.put(`/staff/${id}`, data),
-  delete: (id) => api.delete(`/staff/${id}`),
-  restore: (id) => api.post(`/staff/${id}/restore`),
+  delete: (id, reason) => api.delete(`/staff/${id}`, { params: { reason } }),
+  restore: (id, data) => api.post(`/staff/${id}/restore`, data),
 };
 
 // Meetings

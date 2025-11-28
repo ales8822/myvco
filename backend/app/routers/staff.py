@@ -1,7 +1,7 @@
 # backend\app\routers\staff.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from ..database import get_db
 from ..models import Staff, Company
@@ -67,7 +67,7 @@ def update_staff(
 
 
 @router.delete("/{staff_id}")
-def remove_staff(staff_id: int, db: Session = Depends(get_db)):
+def remove_staff(staff_id: int, reason: Optional[str] = None, db: Session = Depends(get_db)):
     staff = db.query(Staff).filter(Staff.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff member not found")
@@ -75,12 +75,13 @@ def remove_staff(staff_id: int, db: Session = Depends(get_db)):
     # Soft delete
     staff.is_active = False
     staff.fired_at = datetime.utcnow()
+    staff.fired_reason = reason
     
     db.commit()
     return {"message": "Staff member fired successfully"}
 
 @router.post("/{staff_id}/restore", response_model=schemas.Staff)
-def restore_staff(staff_id: int, db: Session = Depends(get_db)):
+def restore_staff(staff_id: int, restore_data: Optional[schemas.StaffRestore] = None, db: Session = Depends(get_db)):
     """Restore a fired staff member"""
     staff = db.query(Staff).filter(Staff.id == staff_id).first()
     if not staff:
@@ -92,6 +93,13 @@ def restore_staff(staff_id: int, db: Session = Depends(get_db)):
     # Restore
     staff.is_active = True
     staff.fired_at = None
+    staff.fired_reason = None
+
+    if restore_data:
+        if restore_data.company_id is not None:
+            staff.company_id = restore_data.company_id
+        if restore_data.department_id is not None:
+            staff.department_id = restore_data.department_id
     
     db.commit()
     db.refresh(staff)

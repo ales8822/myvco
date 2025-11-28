@@ -56,15 +56,15 @@ export const useStaffStore = create((set) => ({
         }
     },
 
-    removeStaff: async (staffId) => {
+    removeStaff: async (staffId, reason) => {
         set({ loading: true, error: null });
         try {
-            await staffApi.delete(staffId);
+            await staffApi.delete(staffId, reason);
             set((state) => {
                 const staffMember = state.staff.find((s) => s.id === staffId);
                 return {
                     staff: state.staff.filter((s) => s.id !== staffId),
-                    firedStaff: staffMember ? [...state.firedStaff, { ...staffMember, is_active: false, fired_at: new Date().toISOString() }] : state.firedStaff,
+                    firedStaff: staffMember ? [...state.firedStaff, { ...staffMember, is_active: false, fired_at: new Date().toISOString(), fired_reason: reason }] : state.firedStaff,
                     loading: false,
                 };
             });
@@ -73,10 +73,10 @@ export const useStaffStore = create((set) => ({
         }
     },
 
-    restoreStaff: async (staffId) => {
+    restoreStaff: async (staffId, restoreData) => {
         set({ loading: true, error: null });
         try {
-            const response = await staffApi.restore(staffId);
+            const response = await staffApi.restore(staffId, restoreData);
             set((state) => ({
                 firedStaff: state.firedStaff.filter((s) => s.id !== staffId),
                 staff: [...state.staff, response.data],
