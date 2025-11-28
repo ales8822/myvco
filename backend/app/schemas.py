@@ -29,6 +29,30 @@ class Company(CompanyBase):
         from_attributes = True
 
 
+# Department Schemas
+class DepartmentBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class DepartmentCreate(DepartmentBase):
+    pass
+
+
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class Department(DepartmentBase):
+    id: int
+    company_id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
 # Staff Schemas
 class StaffBase(BaseModel):
     name: str
@@ -36,11 +60,10 @@ class StaffBase(BaseModel):
     personality: Optional[str] = None
     expertise: Optional[List[str]] = None
     system_prompt: Optional[str] = None
-    # Removed LLM fields from here
 
 
 class StaffCreate(StaffBase):
-    pass
+    department_id: Optional[int] = None
 
 
 class StaffUpdate(BaseModel):
@@ -49,11 +72,16 @@ class StaffUpdate(BaseModel):
     personality: Optional[str] = None
     expertise: Optional[List[str]] = None
     system_prompt: Optional[str] = None
+    department_id: Optional[int] = None
 
 
 class Staff(StaffBase):
     id: int
     company_id: int
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
+    is_active: bool = True
+    fired_at: Optional[datetime] = None
     created_at: datetime
     
     class Config:
@@ -70,7 +98,7 @@ class ParticipantConfig(BaseModel):
 class MeetingCreate(BaseModel):
     title: str
     meeting_type: str = "general"
-    participants: List[ParticipantConfig] = []  # Changed from list of IDs to config objects
+    participants: List[ParticipantConfig] = []
     template_id: Optional[int] = None
 
 
@@ -79,6 +107,8 @@ class MeetingParticipantInfo(BaseModel):
     staff_id: int
     staff_name: str
     staff_role: str
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
     llm_provider: str
     llm_model: Optional[str]
     joined_at: datetime
@@ -130,7 +160,6 @@ class SendMessageToAllRequest(BaseModel):
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str  # "active" or "ended"
-    # Add these fields for summary generation
     summary_llm_provider: Optional[str] = "gemini"
     summary_llm_model: Optional[str] = None
 

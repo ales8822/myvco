@@ -1,13 +1,14 @@
 # backend\app\models\__init__.py
-# Import all models for easy access
 from .company import Company
+from .department import Department
 from .staff import Staff
 from .meeting import Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, MeetingTemplate
 from .knowledge import Knowledge
 
 __all__ = [
     "Company",
-    "Staff",
+    "Department",
+    "Staff", 
     "Meeting",
     "MeetingParticipant",
     "MeetingMessage",
@@ -16,4 +17,3 @@ __all__ = [
     "MeetingTemplate",
     "Knowledge"
 ]
-

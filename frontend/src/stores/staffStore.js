@@ -4,14 +4,25 @@ import { staffApi } from '../lib/api';
 
 export const useStaffStore = create((set) => ({
     staff: [],
+    firedStaff: [],
     loading: false,
     error: null,
 
     fetchStaff: async (companyId) => {
         set({ loading: true, error: null });
         try {
-            const response = await staffApi.list(companyId);
+            const response = await staffApi.list(companyId, true);
             set({ staff: response.data, loading: false });
+        } catch (error) {
+            set({ error: error.message, loading: false });
+        }
+    },
+
+    fetchFiredStaff: async (companyId) => {
+        set({ loading: true, error: null });
+        try {
+            const response = await staffApi.list(companyId, false);
+            set({ firedStaff: response.data, loading: false });
         } catch (error) {
             set({ error: error.message, loading: false });
         }
@@ -49,8 +60,26 @@ export const useStaffStore = create((set) => ({
         set({ loading: true, error: null });
         try {
             await staffApi.delete(staffId);
+            set((state) => {
+                const staffMember = state.staff.find((s) => s.id === staffId);
+                return {
+                    staff: state.staff.filter((s) => s.id !== staffId),
+                    firedStaff: staffMember ? [...state.firedStaff, { ...staffMember, is_active: false, fired_at: new Date().toISOString() }] : state.firedStaff,
+                    loading: false,
+                };
+            });
+        } catch (error) {
+            set({ error: error.message, loading: false });
+        }
+    },
+
+    restoreStaff: async (staffId) => {
+        set({ loading: true, error: null });
+        try {
+            const response = await staffApi.restore(staffId);
             set((state) => ({
-                staff: state.staff.filter((s) => s.id !== staffId),
+                firedStaff: state.firedStaff.filter((s) => s.id !== staffId),
+                staff: [...state.staff, response.data],
                 loading: false,
             }));
         } catch (error) {
@@ -58,4 +87,3 @@ export const useStaffStore = create((set) => ({
         }
     },
 }));
-

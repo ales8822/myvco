@@ -17,14 +17,25 @@ export const companiesApi = {
   delete: (id) => api.delete(`/companies/${id}`),
 };
 
+// Departments
+export const departmentsApi = {
+  list: (companyId) => api.get(`/departments/companies/${companyId}/departments`),
+  get: (id) => api.get(`/departments/${id}`),
+  getStaff: (id) => api.get(`/departments/${id}/staff`),
+  create: (companyId, data) => api.post(`/departments/companies/${companyId}/departments`, data),
+  update: (id, data) => api.put(`/departments/${id}`, data),
+  delete: (id) => api.delete(`/departments/${id}`),
+};
+
 // Staff
 export const staffApi = {
-  list: (companyId) => api.get(`/staff/companies/${companyId}/staff`),
+  list: (companyId, isActive = true) => api.get(`/staff/companies/${companyId}/staff?is_active=${isActive}`),
   get: (id) => api.get(`/staff/${id}`),
   create: (companyId, data) =>
     api.post(`/staff/companies/${companyId}/staff`, data),
   update: (id, data) => api.put(`/staff/${id}`, data),
   delete: (id) => api.delete(`/staff/${id}`),
+  restore: (id) => api.post(`/staff/${id}/restore`),
 };
 
 // Meetings
@@ -33,7 +44,7 @@ export const meetingsApi = {
   get: (id) => api.get(`/meetings/${id}`),
   create: (companyId, data) =>
     api.post(`/meetings/companies/${companyId}/meetings`, data),
-  delete: (id) => api.delete(`/meetings/${id}`), // <--- Added this line
+  delete: (id) => api.delete(`/meetings/${id}`),
   getMessages: (id) => api.get(`/meetings/${id}/messages`),
   sendMessage: (meetingId, staffId, data) =>
     api.post(`/meetings/${meetingId}/messages?staff_id=${staffId}`, data),
@@ -64,4 +75,3 @@ export const llmApi = {
 };
 
 export default api;
-

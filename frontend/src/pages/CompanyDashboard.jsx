@@ -4,20 +4,35 @@ import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
 import { useStaffStore } from '../stores/staffStore';
 import { useMeetingStore } from '../stores/meetingStore';
+import { useDepartmentStore } from '../stores/departmentStore';
 import Sidebar from '../components/Sidebar';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { llmApi } from '../lib/api';
+import DepartmentView from '../components/DepartmentView';
+import { llmApi, departmentsApi } from '../lib/api';
 
 export default function CompanyDashboard() {
     const navigate = useNavigate();
     const { currentCompany } = useCompanyStore();
-    const { staff, fetchStaff } = useStaffStore();
+    const { staff, fetchStaff, firedStaff, fetchFiredStaff, updateStaff, removeStaff, restoreStaff } = useStaffStore();
     const { meetings, fetchMeetings, createMeeting, deleteMeeting } = useMeetingStore();
+    const { departments, fetchDepartments } = useDepartmentStore();
     const [showMeetingModal, setShowMeetingModal] = useState(false);
-    
+    const [selectedDepartment, setSelectedDepartment] = useState(null);
+    const [departmentStaff, setDepartmentStaff] = useState([]);
+    const [showFiredStaff, setShowFiredStaff] = useState(false);
+    const [editingStaff, setEditingStaff] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        role: '',
+        personality: '',
+        expertise: '',
+        department_id: '',
+    });
+
     // LLM State
     const [providers, setProviders] = useState(null);
-    
+
     // Meeting Form State
     const [meetingForm, setMeetingForm] = useState({
         title: '',
@@ -28,7 +43,9 @@ export default function CompanyDashboard() {
     useEffect(() => {
         if (currentCompany) {
             fetchStaff(currentCompany.id);
+            fetchFiredStaff(currentCompany.id);
             fetchMeetings(currentCompany.id);
+            fetchDepartments(currentCompany.id);
         }
         loadProviders();
     }, [currentCompany]);
@@ -39,6 +56,68 @@ export default function CompanyDashboard() {
             setProviders(response.data);
         } catch (error) {
             console.error('Error loading providers:', error);
+        }
+    };
+
+    const handleDepartmentClick = async (department) => {
+        setSelectedDepartment(department);
+        try {
+            const response = await departmentsApi.getStaff(department.id);
+            setDepartmentStaff(response.data);
+        } catch (error) {
+            console.error('Error loading department staff:', error);
+        }
+    };
+
+    const handleBackToDepartments = () => {
+        setSelectedDepartment(null);
+        setDepartmentStaff([]);
+    };
+
+    const handleEditStaff = (member) => {
+        setEditingStaff(member);
+        setEditForm({
+            name: member.name,
+            role: member.role,
+            personality: member.personality || '',
+            expertise: Array.isArray(member.expertise) ? member.expertise.join(', ') : (member.expertise || ''),
+            department_id: member.department_id || '',
+        });
+        setShowEditModal(true);
+    };
+
+    const handleUpdateStaff = async (e) => {
+        e.preventDefault();
+        try {
+            const updatedData = {
+                ...editForm,
+                expertise: editForm.expertise.split(',').map(s => s.trim()).filter(Boolean),
+                department_id: editForm.department_id ? parseInt(editForm.department_id) : null,
+            };
+            await updateStaff(editingStaff.id, updatedData);
+            setShowEditModal(false);
+            setEditingStaff(null);
+            // Refresh department staff if we are in department view
+            if (selectedDepartment) {
+                handleDepartmentClick(selectedDepartment);
+            }
+        } catch (error) {
+            console.error('Error updating staff:', error);
+        }
+    };
+
+    const handleFireStaff = async (staffId) => {
+        if (window.confirm('Are you sure you want to fire this staff member? They will be moved to the archive.')) {
+            await removeStaff(staffId);
+            if (selectedDepartment) {
+                handleDepartmentClick(selectedDepartment);
+            }
+        }
+    };
+
+    const handleRestoreStaff = async (staffId) => {
+        if (window.confirm('Are you sure you want to restore this staff member?')) {
+            await restoreStaff(staffId);
         }
     };
 
@@ -64,7 +143,7 @@ export default function CompanyDashboard() {
     // Toggle participant selection and initialize default config
     const handleParticipantToggle = (staffId) => {
         const isSelected = meetingForm.participants.find(p => p.staff_id === staffId);
-        
+
         if (isSelected) {
             // Remove
             setMeetingForm({
@@ -77,10 +156,10 @@ export default function CompanyDashboard() {
                 ...meetingForm,
                 participants: [
                     ...meetingForm.participants,
-                    { 
-                        staff_id: staffId, 
-                        llm_provider: 'gemini', 
-                        llm_model: '' 
+                    {
+                        staff_id: staffId,
+                        llm_provider: 'gemini',
+                        llm_model: ''
                     }
                 ]
             });
@@ -91,7 +170,7 @@ export default function CompanyDashboard() {
     const updateParticipantConfig = (staffId, field, value) => {
         setMeetingForm({
             ...meetingForm,
-            participants: meetingForm.participants.map(p => 
+            participants: meetingForm.participants.map(p =>
                 p.staff_id === staffId ? { ...p, [field]: value } : p
             )
         });
@@ -119,11 +198,23 @@ export default function CompanyDashboard() {
                         <div className="card">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">Staff Members</p>
-                                    <p className="text-3xl font-bold text-gray-900">{staff.length}</p>
+                                    <p className="text-sm text-gray-600 mb-1">Departments</p>
+                                    <p className="text-3xl font-bold text-gray-900">{departments.length}</p>
                                 </div>
-                                <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                                    <span className="text-2xl">👥</span>
+                                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-2xl">📂</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setShowFiredStaff(!showFiredStaff)}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-1">Fired Staff</p>
+                                    <p className="text-3xl font-bold text-gray-900">{firedStaff?.length || 0}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-2xl">🚫</span>
                                 </div>
                             </div>
                         </div>
@@ -157,6 +248,113 @@ export default function CompanyDashboard() {
                         </div>
                     </div>
 
+                    {/* Department/Staff View */}
+                    <div className="card mb-8">
+                        {selectedDepartment ? (
+                            <div>
+                                <button
+                                    onClick={handleBackToDepartments}
+                                    className="mb-4 text-primary-600 hover:text-primary-700 flex items-center gap-2"
+                                >
+                                    ← Back to Departments
+                                </button>
+                                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                                    {selectedDepartment.name} - Staff
+                                </h2>
+                                {departmentStaff.length === 0 ? (
+                                    <p className="text-gray-500">No staff in this department yet.</p>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {departmentStaff.map((member) => (
+                                            <div key={member.id} className="card group relative">
+                                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleEditStaff(member); }}
+                                                        className="p-1.5 bg-white text-blue-600 hover:bg-blue-50 rounded shadow-sm border border-gray-200"
+                                                        title="Edit Staff"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleFireStaff(member.id); }}
+                                                        className="p-1.5 bg-white text-red-600 hover:bg-red-50 rounded shadow-sm border border-gray-200"
+                                                        title="Fire Staff"
+                                                    >
+                                                        🔥
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+                                                        <span className="text-2xl font-bold text-white">
+                                                            {member.name.charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                                                    {member.name}
+                                                </h3>
+                                                <p className="text-primary-600 font-medium mb-3">
+                                                    {member.role}
+                                                </p>
+                                                {member.personality && (
+                                                    <p className="text-sm text-gray-600 mb-3">
+                                                        {member.personality}
+                                                    </p>
+                                                )}
+                                                {member.expertise && member.expertise.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {member.expertise.map((skill, idx) => (
+                                                            <span
+                                                                key={idx}
+                                                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                                                            >
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <DepartmentView companyId={currentCompany?.id} onDepartmentClick={handleDepartmentClick} />
+                        )}
+                    </div>
+
+                    {/* Fired Staff Panel */}
+                    {showFiredStaff && (
+                        <div className="card mb-8 bg-red-50 border-red-100">
+                            <h2 className="text-xl font-semibold text-red-900 mb-4 flex items-center gap-2">
+                                <span>🚫</span> Fired Staff Archive
+                            </h2>
+                            {firedStaff?.length === 0 ? (
+                                <p className="text-gray-500">No fired staff in the archive.</p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {firedStaff?.map((member) => (
+                                        <div key={member.id} className="bg-white p-4 rounded-lg border border-red-100 shadow-sm opacity-75 hover:opacity-100 transition-opacity">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-semibold text-gray-900">{member.name}</h3>
+                                                <button
+                                                    onClick={() => handleRestoreStaff(member.id)}
+                                                    className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+                                                >
+                                                    Restore
+                                                </button>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mb-1">{member.role}</p>
+                                            <p className="text-xs text-gray-500">
+                                                Fired: {new Date(member.fired_at).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Quick Actions */}
                     <div className="card mb-8">
                         <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -184,7 +382,7 @@ export default function CompanyDashboard() {
                                                 {meeting.meeting_type} • Started {new Date(meeting.created_at).toLocaleString()}
                                             </p>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={(e) => handleDeleteMeeting(e, meeting.id)}
                                             className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all"
                                         >
@@ -214,7 +412,7 @@ export default function CompanyDashboard() {
                                             </p>
                                             {meeting.summary && <p className="text-sm text-gray-700 line-clamp-2">{meeting.summary}</p>}
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={(e) => handleDeleteMeeting(e, meeting.id)}
                                             className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all ml-4"
                                         >
@@ -297,7 +495,7 @@ export default function CompanyDashboard() {
                                                                 <option value="ollama">Ollama</option>
                                                             </select>
                                                         </div>
-                                                        
+
                                                         {participant.llm_provider === 'ollama' && (
                                                             <div>
                                                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Model</label>
@@ -324,6 +522,83 @@ export default function CompanyDashboard() {
                             <div className="flex gap-3">
                                 <button type="submit" className="btn-primary flex-1">Start Meeting</button>
                                 <button type="button" onClick={() => setShowMeetingModal(false)} className="btn-secondary flex-1">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Staff Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Staff Member</h2>
+                        <form onSubmit={handleUpdateStaff}>
+                            <div className="mb-4">
+                                <label className="label">Name</label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="label">Role</label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    value={editForm.role}
+                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="label">Department</label>
+                                <select
+                                    className="input"
+                                    value={editForm.department_id}
+                                    onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
+                                >
+                                    <option value="">No Department</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="mb-4">
+                                <label className="label">Personality</label>
+                                <textarea
+                                    className="input"
+                                    rows="2"
+                                    value={editForm.personality}
+                                    onChange={(e) => setEditForm({ ...editForm, personality: e.target.value })}
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="label">Expertise (comma-separated)</label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    value={editForm.expertise}
+                                    onChange={(e) => setEditForm({ ...editForm, expertise: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button type="submit" className="btn-primary flex-1">Update</button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingStaff(null);
+                                    }}
+                                    className="btn-secondary flex-1"
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         </form>
                     </div>

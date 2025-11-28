@@ -7,6 +7,7 @@ from .config import settings
 from .database import init_db
 from .routers import (
     companies_router,
+    departments_router,
     staff_router,
     meetings_router,
     knowledge_router,
@@ -38,6 +39,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Register routers
 app.include_router(companies_router)
+app.include_router(departments_router)
 app.include_router(staff_router)
 app.include_router(meetings_router)
 app.include_router(knowledge_router)
@@ -64,4 +66,3 @@ def root():
 def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
-

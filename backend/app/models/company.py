@@ -16,6 +16,7 @@ class Company(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
+    departments = relationship("Department", back_populates="company", cascade="all, delete-orphan")
     staff = relationship("Staff", back_populates="company", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="company", cascade="all, delete-orphan")
     knowledge = relationship("Knowledge", back_populates="company", cascade="all, delete-orphan")

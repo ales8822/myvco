@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from ..database import get_db
 from ..models import Staff, Company
 from .. import schemas
@@ -31,8 +32,11 @@ def hire_staff(
 
 
 @router.get("/companies/{company_id}/staff", response_model=List[schemas.Staff])
-def list_company_staff(company_id: int, db: Session = Depends(get_db)):
-    return db.query(Staff).filter(Staff.company_id == company_id).all()
+def list_company_staff(company_id: int, is_active: bool = True, db: Session = Depends(get_db)):
+    return db.query(Staff).filter(
+        Staff.company_id == company_id,
+        Staff.is_active == is_active
+    ).all()
 
 
 @router.get("/{staff_id}", response_model=schemas.Staff)
@@ -68,6 +72,27 @@ def remove_staff(staff_id: int, db: Session = Depends(get_db)):
     if not staff:
         raise HTTPException(status_code=404, detail="Staff member not found")
     
-    db.delete(staff)
+    # Soft delete
+    staff.is_active = False
+    staff.fired_at = datetime.utcnow()
+    
     db.commit()
-    return {"message": "Staff member removed successfully"}
+    return {"message": "Staff member fired successfully"}
+
+@router.post("/{staff_id}/restore", response_model=schemas.Staff)
+def restore_staff(staff_id: int, db: Session = Depends(get_db)):
+    """Restore a fired staff member"""
+    staff = db.query(Staff).filter(Staff.id == staff_id).first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+    
+    if staff.is_active:
+        raise HTTPException(status_code=400, detail="Staff member is already active")
+    
+    # Restore
+    staff.is_active = True
+    staff.fired_at = None
+    
+    db.commit()
+    db.refresh(staff)
+    return staff

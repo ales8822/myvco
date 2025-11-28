@@ -19,14 +19,14 @@ export default function MeetingRoom() {
     const { currentMeeting, messages, selectMeeting, addMessage, updateMessage, endMeeting } =
         useMeetingStore();
     const { staff } = useStaffStore();
-    
+
     const [inputMessage, setInputMessage] = useState('');
     const [selectedStaffId, setSelectedStaffId] = useState(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [showImageUpload, setShowImageUpload] = useState(false);
     const [showActionItems, setShowActionItems] = useState(false);
     const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
-    
+
     // End Meeting Modal State
     const [showEndModal, setShowEndModal] = useState(false);
     const [providers, setProviders] = useState(null);
@@ -36,7 +36,7 @@ export default function MeetingRoom() {
         model: ''
     });
     const [isEnding, setIsEnding] = useState(false);
-    
+
     const [thinkingStaff, setThinkingStaff] = useState([]);
     const messagesEndRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -59,7 +59,7 @@ export default function MeetingRoom() {
     const loadProviders = async (force = false) => {
         // Stop if already loading
         if (isLoadingProviders) return;
-        
+
         // Stop if we already have data and aren't forcing a refresh
         if (providers && !force) return;
 
@@ -187,11 +187,11 @@ export default function MeetingRoom() {
             created_at: new Date().toISOString(),
         };
         addMessage(userMessage);
-        const messageToSend = inputMessage; 
+        const messageToSend = inputMessage;
         setInputMessage('');
         setIsStreaming(true);
 
-        const participants = staff.filter(s => 
+        const participants = staff.filter(s =>
             currentMeeting?.participants?.some(p => p.staff_id === s.id)
         );
 
@@ -204,7 +204,7 @@ export default function MeetingRoom() {
 
         const fetchStaffResponse = async (member, index) => {
             try {
-                const saveUserMsg = index === 0; 
+                const saveUserMsg = index === 0;
                 const response = await fetch(
                     `/api/meetings/${meetingId}/messages?staff_id=${member.id}&save_user_message=${saveUserMsg}`,
                     {
@@ -290,13 +290,13 @@ export default function MeetingRoom() {
     const handleProviderChange = (e) => {
         const newProvider = e.target.value;
         let newModel = '';
-        
+
         if (newProvider === 'ollama') {
             if (providers?.ollama_models && providers.ollama_models.length > 0) {
                 newModel = providers.ollama_models[0];
             }
         }
-        
+
         setSummaryConfig({ provider: newProvider, model: newModel });
     };
 
@@ -318,14 +318,14 @@ export default function MeetingRoom() {
                         <div className="flex gap-3">
                             <button onClick={() => setShowActionItems(!showActionItems)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{showActionItems ? 'Hide' : 'Show'} Action Items</button>
                             {currentMeeting?.status === 'active' && (
-                                <button 
+                                <button
                                     onClick={() => {
                                         // We pass 'true' here to force a refresh only when the user 
                                         // explicitly opens the menu, ensuring the model list is up to date
                                         // without spamming it during normal page usage.
-                                        loadProviders(true); 
+                                        loadProviders(true);
                                         setShowEndModal(true);
-                                    }} 
+                                    }}
                                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                                 >
                                     End Meeting
@@ -342,12 +342,24 @@ export default function MeetingRoom() {
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6 shadow-sm">
                                     <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2"><span>📝</span> Meeting Summary</h3>
                                     <div className="prose prose-sm max-w-none text-gray-800">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ul: ({node, ...props}) => <ul className="list-disc ml-4" {...props} />, ol: ({node, ...props}) => <ol className="list-decimal ml-4" {...props} />, h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-2" {...props} />, h2: ({node, ...props}) => <h2 className="text-base font-bold mt-2" {...props} /> }}>{currentMeeting.summary}</ReactMarkdown>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ul: ({ node, ...props }) => <ul className="list-disc ml-4" {...props} />, ol: ({ node, ...props }) => <ol className="list-decimal ml-4" {...props} />, h1: ({ node, ...props }) => <h1 className="text-lg font-bold mt-2" {...props} />, h2: ({ node, ...props }) => <h2 className="text-base font-bold mt-2" {...props} /> }}>{currentMeeting.summary}</ReactMarkdown>
                                     </div>
                                 </div>
                             )}
-                            {messages.map((message, idx) => <ChatBubble key={`${message.id}-${idx}`} message={message} />)}
-                            
+                            {messages.map((message, idx) => {
+                                // Find participant info for this message
+                                const participantInfo = currentMeeting?.participants?.find(
+                                    p => p.staff_id === message.staff_id
+                                );
+                                return (
+                                    <ChatBubble
+                                        key={`${message.id}-${idx}`}
+                                        message={message}
+                                        participantInfo={participantInfo}
+                                    />
+                                );
+                            })}
+
                             {thinkingStaff.map((member) => (
                                 <div key={`thinking-${member.id}`} className="flex justify-start">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1 flex-shrink-0">
@@ -373,7 +385,7 @@ export default function MeetingRoom() {
                             <div className="bg-white border-t border-gray-200 p-6">
                                 {showImageUpload ? (
                                     <div className="mb-4">
-                                        <ImageUpload onImageSelect={() => {}} onUpload={handleImageUpload} />
+                                        <ImageUpload onImageSelect={() => { }} onUpload={handleImageUpload} />
                                         <button onClick={() => setShowImageUpload(false)} className="btn-secondary w-full mt-2">Cancel</button>
                                     </div>
                                 ) : (
@@ -402,12 +414,31 @@ export default function MeetingRoom() {
                         <div className="mb-6">
                             <h3 className="font-semibold text-gray-900 mb-4">Participants ({participantStaff.length})</h3>
                             <div className="space-y-3">
-                                {participantStaff.map((member) => (
-                                    <div key={member.id} className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center"><span className="text-sm font-bold text-white">{member.name.charAt(0).toUpperCase()}</span></div>
-                                        <div><p className="font-medium text-gray-900 text-sm">{member.name}</p><p className="text-xs text-gray-600">{member.role}</p></div>
-                                    </div>
-                                ))}
+                                {participantStaff.map((member) => {
+                                    const participantInfo = currentMeeting?.participants?.find(
+                                        p => p.staff_id === member.id
+                                    );
+                                    return (
+                                        <div key={member.id} className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm font-bold text-white">{member.name.charAt(0).toUpperCase()}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-gray-900 text-sm truncate">{member.name}</p>
+                                                <p className="text-xs text-gray-600 truncate">{member.role}</p>
+                                                {participantInfo?.department_name && (
+                                                    <p className="text-xs text-gray-500 truncate">📂 {participantInfo.department_name}</p>
+                                                )}
+                                                <p className="text-xs text-gray-500 truncate">
+                                                    🤖 {participantInfo?.llm_provider === 'ollama' && participantInfo?.llm_model
+                                                        ? participantInfo.llm_model
+                                                        : participantInfo?.llm_provider || 'gemini'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                         {showActionItems && <ActionItemsPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} />}
@@ -421,7 +452,7 @@ export default function MeetingRoom() {
                     <div className="bg-white rounded-xl p-8 max-w-md w-full">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
                         <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
-                        
+
                         <div className="mb-4">
                             <label className="label">LLM Provider</label>
                             <select
@@ -458,8 +489,8 @@ export default function MeetingRoom() {
                                     <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
                                         <p className="font-medium">⚠️ No models found</p>
                                         <p className="mt-1">Is Ollama running? Check your connection.</p>
-                                        <button 
-                                            onClick={loadProviders} 
+                                        <button
+                                            onClick={loadProviders}
                                             className="mt-2 text-red-700 underline hover:text-red-800 text-xs"
                                         >
                                             Retry Fetching Models
@@ -470,15 +501,15 @@ export default function MeetingRoom() {
                         )}
 
                         <div className="flex gap-3 mt-6">
-                            <button 
-                                onClick={confirmEndMeeting} 
+                            <button
+                                onClick={confirmEndMeeting}
                                 className="btn-primary flex-1 bg-red-600 hover:bg-red-700"
                                 disabled={isEnding}
                             >
                                 {isEnding ? 'Generating Summary...' : 'Confirm End Meeting'}
                             </button>
-                            <button 
-                                onClick={() => setShowEndModal(false)} 
+                            <button
+                                onClick={() => setShowEndModal(false)}
                                 className="btn-secondary flex-1"
                                 disabled={isEnding}
                             >

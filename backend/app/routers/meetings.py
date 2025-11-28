@@ -9,7 +9,7 @@ import os
 import base64
 from .. import schemas
 from ..database import get_db
-from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem
+from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
 
