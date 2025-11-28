@@ -74,4 +74,9 @@ export const llmApi = {
   getOllamaModels: () => api.get("/llm/ollama/models"),
 };
 
-export default api;
+// Settings
+export const settingsApi = {
+  get: () => api.get('/settings/'),
+  update: (data) => api.post('/settings/', data),
+};
+

@@ -1,13 +1,8 @@
 @echo off
-echo Starting MyVCO...
+echo Starting MyVCO with PM2...
 
-:: Open Browser (will open in default browser)
 start http://localhost:5173
 
-:: Start both servers in this window
-cd frontend
-echo Starting Backend and Frontend servers...
-echo Press Ctrl+C to stop both servers.
-npm run dev:all
+pm2 start ecosystem.config.js
 
 pause

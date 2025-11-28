@@ -1,4 +1,4 @@
-// frontend\src\pages\CompanySelector.jsx
+// frontend/src/pages/CompanySelector.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
@@ -37,7 +37,18 @@ export default function CompanySelector() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
-            <div className="container mx-auto px-4 py-16">
+            <div className="container mx-auto px-4 py-16 relative">
+                
+                {/* Settings Button */}
+                <button
+                    onClick={() => navigate('/settings')}
+                    className="absolute top-6 right-6 text-gray-500 hover:text-primary-600 flex items-center gap-2 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                    title="Application Settings"
+                >
+                    <span className="text-xl">⚙️</span>
+                    <span className="text-sm font-medium">Settings</span>
+                </button>
+
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-gray-900 mb-4">
                         Welcome to <span className="text-primary-600">MyVCO</span>
@@ -170,4 +181,3 @@ export default function CompanySelector() {
         </div>
     );
 }
-

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def get_cors_origins(self) -> List[str]:
         """Parse CORS origins from comma-separated string"""

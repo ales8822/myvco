@@ -1,36 +1,47 @@
-# backend\app\services\llm_service.py
 import google.generativeai as genai
 import httpx
 import json
+import traceback
 import os
 import base64
 from typing import AsyncGenerator, Optional, List, Dict
 from ..config import settings
 
-
 class LLMService:
     """Service for LLM interactions with Gemini and Ollama support"""
     
     def __init__(self):
-        # Configure Gemini
+        # Configure Gemini initial load
         if settings.gemini_api_key:
             genai.configure(api_key=settings.gemini_api_key)
-        
-        self.ollama_base_url = settings.ollama_base_url
     
     async def get_ollama_models(self) -> List[str]:
         """Fetch available models from Ollama RunPod instance"""
-        if not self.ollama_base_url:
+        # Debug: Print what URL we are trying to use
+        print(f"DEBUG: Checking Ollama connection at: {settings.ollama_base_url}")
+        
+        if not settings.ollama_base_url:
+            print("DEBUG: Ollama URL is missing/empty.")
             return []
         
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.ollama_base_url}/api/tags")
+                target_url = f"{settings.ollama_base_url}/api/tags"
+                print(f"DEBUG: Sending GET request to: {target_url}")
+                
+                response = await client.get(target_url)
+                print(f"DEBUG: Ollama Response Status: {response.status_code}")
+                
                 if response.status_code == 200:
                     data = response.json()
-                    return [model["name"] for model in data.get("models", [])]
+                    models = [model["name"] for model in data.get("models", [])]
+                    print(f"DEBUG: Found models: {models}")
+                    return models
+                else:
+                    print(f"DEBUG: Failed to get models. Response text: {response.text}")
+                    return []
         except Exception as e:
-            print(f"Error fetching Ollama models: {e}")
+            print(f"ERROR: Exception fetching Ollama models: {e}")
             return []
         
         return []
@@ -44,22 +55,10 @@ class LLMService:
         temperature: float = 0.7,
         image_path: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
-        """
-        Generate streaming response from LLM
-        
-        Args:
-            prompt: User message
-            system_prompt: System instructions (role, personality, context)
-            provider: "gemini" or "ollama"
-            model: Model name (uses default if not specified)
-            temperature: Sampling temperature
-            image_path: Optional path to image for vision analysis
-        """
         if provider == "gemini":
             async for chunk in self._generate_gemini_stream(prompt, system_prompt, model, temperature, image_path):
                 yield chunk
         elif provider == "ollama":
-            # FIX: Pass image_path to Ollama
             async for chunk in self._generate_ollama_stream(prompt, system_prompt, model, temperature, image_path):
                 yield chunk
         else:
@@ -76,43 +75,28 @@ class LLMService:
         """Generate streaming response from Gemini"""
         try:
             model_name = model or settings.default_model
+            gemini_model = genai.GenerativeModel(model_name=model_name)
             
-            # Create Gemini model
-            gemini_model = genai.GenerativeModel(
-                model_name=model_name
-            )
-            
-            # Prepend system prompt to user prompt
             full_prompt = f"{system_prompt}\n\nUser: {prompt}"
-            
             content = []
             
-            # Add image if provided
             if image_path:
                 try:
                     import PIL.Image
-                    print(f"DEBUG: Loading image for Gemini from: {image_path}")
-                    
-                    # Open file explicitly to ensure access before passing to PIL
                     with open(image_path, 'rb') as f:
                         img = PIL.Image.open(f)
                         img.load()
                         content.append(img)
                         content.append(full_prompt)
                 except Exception as e:
-                    error_msg = f"[SYSTEM ERROR: Could not load image file. The AI will not be able to see it. Reason: {str(e)}]"
-                    print(error_msg)
-                    yield error_msg + "\n"
-                    content = [f"{full_prompt}\n\n[SYSTEM: The user attempted to attach an image, but it failed to load on the server.]"]
+                    yield f"[SYSTEM ERROR: Could not load image: {str(e)}]\n"
+                    content = [full_prompt]
             else:
                 content = [full_prompt]
             
-            # Generate streaming response
             response = await gemini_model.generate_content_async(
                 content,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=temperature,
-                ),
+                generation_config=genai.types.GenerationConfig(temperature=temperature),
                 stream=True
             )
             
@@ -131,23 +115,21 @@ class LLMService:
         image_path: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Ollama"""
-        if not self.ollama_base_url:
+        if not settings.ollama_base_url:
             yield "Error: Ollama base URL not configured"
             return
         
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            # Increase timeout for cold starts (e.g. model loading)
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 payload = {
                     "model": model or "llama2",
                     "prompt": prompt,
                     "system": system_prompt,
                     "stream": True,
-                    "options": {
-                        "temperature": temperature
-                    }
+                    "options": {"temperature": temperature}
                 }
 
-                # FIX: Encode image for Ollama if present
                 if image_path:
                     try:
                         print(f"DEBUG: Encoding image for Ollama from: {image_path}")
@@ -158,35 +140,44 @@ class LLMService:
                         print(f"Error encoding image for Ollama: {e}")
                         yield f"[SYSTEM ERROR: Failed to load image for Ollama: {str(e)}]\n"
                 
-                async with client.stream(
-                    "POST",
-                    f"{self.ollama_base_url}/api/generate",
-                    json=payload
-                ) as response:
+                target_url = f"{settings.ollama_base_url}/api/generate"
+                print(f"DEBUG: Connecting to Ollama at {target_url} with model {payload['model']}")
+
+                async with client.stream("POST", target_url, json=payload) as response:
+                    
+                    # Check for HTTP errors (e.g., 404 Model Not Found, 500 Internal Error)
+                    if response.status_code != 200:
+                        error_content = await response.read()
+                        error_msg = f"Ollama HTTP Error {response.status_code}: {error_content.decode('utf-8')}"
+                        print(f"ERROR: {error_msg}")
+                        yield error_msg
+                        return
+
                     async for line in response.aiter_lines():
                         if line:
                             try:
                                 data = json.loads(line)
+                                
+                                if "error" in data:
+                                    error_msg = f"Ollama API Error: {data['error']}"
+                                    print(f"ERROR: {error_msg}")
+                                    yield error_msg
+                                    return
+                                
                                 if "response" in data:
                                     yield data["response"]
+                                    
                             except json.JSONDecodeError:
                                 continue
                                 
         except Exception as e:
-            yield f"Error generating Ollama response: {str(e)}"
+            # Log full traceback to backend terminal for easier debugging
+            print("ERROR: Exception in _generate_ollama_stream:")
+            traceback.print_exc()
+            # Return detailed error to UI
+            yield f"Error generating Ollama response: {repr(e)}"
 
-    def build_system_prompt(
-        self,
-        staff_name: str,
-        role: str,
-        personality: str,
-        expertise: str,
-        company_context: str,
-        meeting_context: str,
-        company_name: str = "MyVCO",
-        company_description: str = ""
-    ) -> str:
-        """Build the system prompt for the AI staff member"""
+    def build_system_prompt(self, staff_name, role, personality, expertise, company_context, meeting_context, company_name="MyVCO", company_description=""):
         prompt_parts = [
             f"You are {staff_name}, a {role} at {company_name}.",
             f"{company_description}\n" if company_description else "",
@@ -197,52 +188,18 @@ class LLMService:
             "Meeting Context:",
             f"{meeting_context}\n" if meeting_context else "No previous context.\n",
         ]
-
-        prompt_parts.append(
-            "\nRespond naturally as this character. Stay in character and provide helpful, "
-            "relevant responses based on your role and expertise. Be concise but informative."
-        )
-        
+        prompt_parts.append("\nRespond naturally as this character.")
         return "\n".join(prompt_parts)
     
-    async def analyze_image(
-        self,
-        image_path: str,
-        context: Optional[str] = None
-    ) -> str:
-        """
-        Analyze an image using Gemini Vision
-        
-        Args:
-            image_path: Path to the image file
-            context: Optional context about the image
-        
-        Returns:
-            AI analysis of the image
-        """
+    async def analyze_image(self, image_path, context=None):
         try:
             import PIL.Image
-            
-            # Load image
             img = PIL.Image.open(image_path)
-            
-            # Create vision model
             model = genai.GenerativeModel('gemini-2.0-flash')
-            
-            # Build prompt
-            if context:
-                prompt = f"Analyze this image. Context: {context}\n\nProvide a detailed analysis including:\n- Subject matter and composition\n- Style and technique\n- Colors and mood\n- Notable features\n- Artistic merit or significance"
-            else:
-                prompt = "Analyze this image in detail. Describe what you see, the style, composition, colors, and any notable features."
-            
-            # Generate analysis
+            prompt = f"Analyze this image. Context: {context}" if context else "Analyze this image in detail."
             response = await model.generate_content_async([prompt, img])
-            
             return response.text
-            
         except Exception as e:
             return f"Error analyzing image: {str(e)}"
 
-
-# Singleton instance
 llm_service = LLMService()

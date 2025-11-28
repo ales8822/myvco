@@ -16,13 +16,13 @@ export default defineConfig({
     proxy: {
       // Proxy API requests
       "/api": {
-        target: "http://localhost:8001",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
       // Proxy static uploads (images)
       "/uploads": {
-        target: "http://localhost:8001",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
     },

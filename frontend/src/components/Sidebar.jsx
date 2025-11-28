@@ -1,4 +1,3 @@
-// frontend\src\components\Sidebar.jsx
 import { Link } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
 
@@ -33,6 +32,12 @@ export default function Sidebar() {
                 >
                     📚 Knowledge Base
                 </Link>
+                {/* <Link
+                    to="/settings"
+                    className="block px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium mb-2"
+                >
+                    ⚙️ Settings
+                </Link> */}
                 <Link
                     to="/"
                     className="block px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium mt-8"
@@ -43,4 +48,3 @@ export default function Sidebar() {
         </div>
     );
 }
-
