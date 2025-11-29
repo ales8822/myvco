@@ -80,3 +80,13 @@ export const settingsApi = {
   update: (data) => api.post('/settings/', data),
 };
 
+// Assets
+export const assetsApi = {
+  list: (companyId) => api.get(`/companies/${companyId}/assets`),
+  get: (companyId, assetId) => api.get(`/companies/${companyId}/assets/${assetId}`),
+  create: (companyId, formData) => api.post(`/companies/${companyId}/assets/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  delete: (companyId, assetId) => api.delete(`/companies/${companyId}/assets/${assetId}`),
+};
+

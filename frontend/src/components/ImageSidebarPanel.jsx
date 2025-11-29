@@ -1,9 +1,11 @@
 // frontend\src\components\ImageSidebarPanel.jsx
 import { useState, useEffect } from 'react';
-import { meetingsApi } from '../lib/api';
+import { meetingsApi, assetsApi } from '../lib/api';
+import ImageGallery from './ImageGallery';
 
-export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger }) {
+export default function ImageSidebarPanel({ meetingId, companyId, isActive, refreshTrigger, onInsertMention }) {
     const [images, setImages] = useState([]);
+    const [companyAssets, setCompanyAssets] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [uploading, setUploading] = useState(false);
     const [showUpload, setShowUpload] = useState(false);
@@ -12,7 +14,13 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
         if (meetingId) {
             loadImages();
         }
-    }, [meetingId, refreshTrigger]); // Added refreshTrigger
+    }, [meetingId, refreshTrigger]);
+
+    useEffect(() => {
+        if (companyId) {
+            loadCompanyAssets();
+        }
+    }, [companyId]);
 
     const loadImages = async () => {
         try {
@@ -23,6 +31,15 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
             }
         } catch (error) {
             console.error('Error loading images:', error);
+        }
+    };
+
+    const loadCompanyAssets = async () => {
+        try {
+            const response = await assetsApi.list(companyId);
+            setCompanyAssets(response.data);
+        } catch (error) {
+            console.error('Error loading company assets:', error);
         }
     };
 
@@ -69,7 +86,7 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-gray-900">Current Image</h3>
+                <h3 className="font-semibold text-gray-900">Meeting Images</h3>
                 {isActive && (
                     <button
                         onClick={() => setShowUpload(!showUpload)}
@@ -108,11 +125,16 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
             ) : (
                 <>
                     {/* Current Image Display */}
-                    <div className="mb-4">
+                    <div className="mb-4 relative group">
+                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded shadow-md z-10">
+                            @img{currentImage.display_order || (currentImageIndex + 1)}
+                        </div>
                         <img
                             src={`http://localhost:8001${currentImage.image_url}`}
                             alt={currentImage.description || 'Meeting image'}
-                            className="w-full rounded-lg border border-gray-200"
+                            className="w-full rounded-lg border border-gray-200 cursor-pointer"
+                            onClick={() => onInsertMention && onInsertMention(`@img${currentImage.display_order || (currentImageIndex + 1)}`)}
+                            title="Click to mention this image"
                         />
                         {currentImage.description && (
                             <p className="text-sm text-gray-600 mt-2">
@@ -143,33 +165,72 @@ export default function ImageSidebarPanel({ meetingId, isActive, refreshTrigger 
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Thumbnail Strip */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {images.map((img, idx) => (
-                                    <button
-                                        key={img.id}
-                                        onClick={() => setCurrentImageIndex(idx)}
-                                        className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden ${idx === currentImageIndex
-                                            ? 'border-primary-500'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        <img
-                                            src={`http://localhost:8001${img.image_url}`}
-                                            alt={`Thumbnail ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </button>
-                                ))}
-                            </div>
                         </div>
                     )}
 
+                    {/* Image Gallery Grid */}
+                    <ImageGallery images={images} onInsertMention={(mention) => {
+                        // Also update current view to the clicked image
+                        const displayOrder = parseInt(mention.replace('@img', ''));
+                        const index = images.findIndex(img => (img.display_order || (images.indexOf(img) + 1)) === displayOrder);
+
+                        if (index >= 0) {
+                            setCurrentImageIndex(index);
+                        }
+                        if (onInsertMention) onInsertMention(mention);
+                    }} />
+
                     <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
-                        💡 All agents can see this image and will reference it in their responses
+                        💡 Click an image or use <b>@imgN</b> to let agents see it.
                     </div>
                 </>
+            )}
+
+            {/* Company Assets Section */}
+            {companyAssets.length > 0 && (
+                <div className="mt-8 border-t border-gray-200 pt-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Company Assets</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                        {companyAssets.map(asset => (
+                            <div
+                                key={asset.id}
+                                className="relative group cursor-pointer border border-gray-200 rounded-lg overflow-hidden hover:border-blue-500 transition-colors"
+                                onClick={() => onInsertMention && onInsertMention(`@${asset.asset_name}`)}
+                            >
+                                <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                                    {asset.asset_type === 'image' ? (
+                                        <img
+                                            src={`http://localhost:8001/${asset.file_path}`}
+                                            alt={asset.display_name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-2xl">📄</span>
+                                    )}
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 truncate">
+                                    @{asset.asset_name}
+                                </div>
+
+                                {/* Tooltip on hover */}
+                                {asset.asset_type === 'image' && (
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                                        <div className="bg-black border border-gray-700 rounded p-1 shadow-xl">
+                                            <img
+                                                src={`http://localhost:8001/${asset.file_path}`}
+                                                alt={asset.asset_name}
+                                                className="max-w-[200px] max-h-[150px] object-contain"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                        Use <b>@asset_name</b> to reference these assets.
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -8,6 +8,7 @@ import { useDepartmentStore } from '../stores/departmentStore';
 import Sidebar from '../components/Sidebar';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DepartmentView from '../components/DepartmentView';
+import AssetManager from '../components/AssetManager';
 import { llmApi, departmentsApi } from '../lib/api';
 
 export default function CompanyDashboard() {
@@ -39,6 +40,8 @@ export default function CompanyDashboard() {
 
     const [showFiredDetailsModal, setShowFiredDetailsModal] = useState(false);
     const [selectedFiredStaff, setSelectedFiredStaff] = useState(null);
+
+    const [selectedTab, setSelectedTab] = useState('overview');
 
     // LLM State
     const [providers, setProviders] = useState(null);
@@ -408,63 +411,93 @@ export default function CompanyDashboard() {
                         </div>
                     </div>
 
-                    {/* Active Meetings */}
-                    {activeMeetings.length > 0 && (
-                        <div className="card mb-8">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Meetings</h2>
-                            <div className="space-y-3">
-                                {activeMeetings.map((meeting) => (
-                                    <div
-                                        key={meeting.id}
-                                        onClick={() => navigate(`/meeting/${meeting.id}`)}
-                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center group"
-                                    >
-                                        <div>
-                                            <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
-                                            <p className="text-sm text-gray-600">
-                                                {meeting.meeting_type} • Started {new Date(meeting.created_at).toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => handleDeleteMeeting(e, meeting.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Tabs */}
+                    <div className="mb-6 border-b border-gray-200">
+                        <nav className="-mb-px flex space-x-8">
+                            <button
+                                onClick={() => setSelectedTab('overview')}
+                                className={`${selectedTab === 'overview'
+                                    ? 'border-primary-500 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                            >
+                                Overview
+                            </button>
+                            <button
+                                onClick={() => setSelectedTab('assets')}
+                                className={`${selectedTab === 'assets'
+                                    ? 'border-primary-500 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                            >
+                                Company Assets
+                            </button>
+                        </nav>
+                    </div>
 
-                    {/* Recent Meetings */}
-                    {pastMeetings.length > 0 && (
-                        <div className="card">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Meetings</h2>
-                            <div className="space-y-3">
-                                {pastMeetings.slice(0, 5).map((meeting) => (
-                                    <div
-                                        key={meeting.id}
-                                        onClick={() => navigate(`/meeting/${meeting.id}`)}
-                                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-start group"
-                                    >
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
-                                            <p className="text-sm text-gray-600 mb-2">
-                                                {meeting.meeting_type} • Ended {new Date(meeting.ended_at).toLocaleString()}
-                                            </p>
-                                            {meeting.summary && <p className="text-sm text-gray-700 line-clamp-2">{meeting.summary}</p>}
-                                        </div>
-                                        <button
-                                            onClick={(e) => handleDeleteMeeting(e, meeting.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all ml-4"
-                                        >
-                                            🗑️
-                                        </button>
+                    {selectedTab === 'assets' ? (
+                        <AssetManager companyId={currentCompany?.id} />
+                    ) : (
+                        <>
+                            {/* Active Meetings */}
+                            {activeMeetings.length > 0 && (
+                                <div className="card mb-8">
+                                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Meetings</h2>
+                                    <div className="space-y-3">
+                                        {activeMeetings.map((meeting) => (
+                                            <div
+                                                key={meeting.id}
+                                                onClick={() => navigate(`/meeting/${meeting.id}`)}
+                                                className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center group"
+                                            >
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
+                                                    <p className="text-sm text-gray-600">
+                                                        {meeting.meeting_type} • Started {new Date(meeting.created_at).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => handleDeleteMeeting(e, meeting.id)}
+                                                    className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
+                            )}
+
+                            {/* Recent Meetings */}
+                            {pastMeetings.length > 0 && (
+                                <div className="card">
+                                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Meetings</h2>
+                                    <div className="space-y-3">
+                                        {pastMeetings.slice(0, 5).map((meeting) => (
+                                            <div
+                                                key={meeting.id}
+                                                onClick={() => navigate(`/meeting/${meeting.id}`)}
+                                                className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-start group"
+                                            >
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
+                                                    <p className="text-sm text-gray-600 mb-2">
+                                                        {meeting.meeting_type} • Ended {new Date(meeting.ended_at).toLocaleString()}
+                                                    </p>
+                                                    {meeting.summary && <p className="text-sm text-gray-700 line-clamp-2">{meeting.summary}</p>}
+                                                </div>
+                                                <button
+                                                    onClick={(e) => handleDeleteMeeting(e, meeting.id)}
+                                                    className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded transition-all ml-4"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

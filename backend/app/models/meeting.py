@@ -69,6 +69,7 @@ class MeetingImage(Base):
     meeting_id = Column(Integer, ForeignKey("meetings.id"), nullable=False)
     message_id = Column(Integer, ForeignKey("meeting_messages.id"), nullable=True)
     image_path = Column(String(500), nullable=False)
+    display_order = Column(Integer, index=True)  # For @img1, @img2, etc.
     analysis = Column(Text)
     image_metadata = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

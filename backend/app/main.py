@@ -12,7 +12,8 @@ from .routers import (
     meetings_router,
     knowledge_router,
     llm_router,
-    settings as settings_router
+    settings as settings_router,
+    assets_router
 )
 
 # Create FastAPI app
@@ -46,6 +47,7 @@ app.include_router(meetings_router)
 app.include_router(knowledge_router)
 app.include_router(llm_router)
 app.include_router(settings_router.router)
+app.include_router(assets_router)
 
 
 @app.on_event("startup")

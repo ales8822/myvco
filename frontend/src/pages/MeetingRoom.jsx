@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMeetingStore } from '../stores/meetingStore';
 import { useStaffStore } from '../stores/staffStore';
-import { meetingsApi, llmApi } from '../lib/api';
+import { meetingsApi, llmApi, assetsApi } from '../lib/api';
 import Sidebar from '../components/Sidebar';
 import ImageUpload from '../components/ImageUpload';
 import ActionItemsPanel from '../components/ActionItemsPanel';
@@ -27,10 +27,18 @@ export default function MeetingRoom() {
     const [showActionItems, setShowActionItems] = useState(false);
     const [imagesRefreshTrigger, setImagesRefreshTrigger] = useState(0);
 
+    // Autocomplete State
+    const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState('');
+    const [mentionCursorIndex, setMentionCursorIndex] = useState(-1);
+    const [availableMentions, setAvailableMentions] = useState([]);
+    const [filteredMentions, setFilteredMentions] = useState([]);
+    const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+
     // End Meeting Modal State
     const [showEndModal, setShowEndModal] = useState(false);
     const [providers, setProviders] = useState(null);
-    const [isLoadingProviders, setIsLoadingProviders] = useState(false); // NEW: Loading state
+    const [isLoadingProviders, setIsLoadingProviders] = useState(false);
     const [summaryConfig, setSummaryConfig] = useState({
         provider: 'gemini',
         model: ''
@@ -40,6 +48,7 @@ export default function MeetingRoom() {
     const [thinkingStaff, setThinkingStaff] = useState([]);
     const messagesEndRef = useRef(null);
     const chatContainerRef = useRef(null);
+    const inputRef = useRef(null);
 
     // Load Meeting Data
     useEffect(() => {
@@ -48,26 +57,73 @@ export default function MeetingRoom() {
         }
     }, [meetingId]);
 
-    // Load Providers on Mount (Separated for reliability)
+    const loadMentions = async () => {
+        try {
+            // Fetch images
+            const imagesRes = await meetingsApi.getImages(meetingId);
+
+            let assetsRes = { data: [] };
+            // Fetch assets if company_id is available
+            if (currentMeeting?.company_id) {
+                assetsRes = await assetsApi.list(currentMeeting.company_id);
+            }
+
+            const mentions = [];
+
+            // Process Meeting Images
+            if (imagesRes.data) {
+                imagesRes.data.forEach((img, index) => {
+                    const label = `img${img.display_order || (index + 1)}`;
+                    mentions.push({
+                        id: `meeting-img-${img.id}`,
+                        label: label,
+                        display: `@${label}`,
+                        type: 'image',
+                        url: `http://localhost:8001${img.image_url}`,
+                        description: img.description
+                    });
+                });
+            }
+
+            // Process Company Assets
+            if (assetsRes.data) {
+                assetsRes.data.forEach(asset => {
+                    mentions.push({
+                        id: `asset-${asset.id}`,
+                        label: asset.asset_name,
+                        display: `@${asset.asset_name}`,
+                        type: 'asset',
+                        url: asset.asset_type === 'image' ? `http://localhost:8001/${asset.file_path}` : null,
+                        description: asset.display_name
+                    });
+                });
+            }
+
+            setAvailableMentions(mentions);
+        } catch (error) {
+            console.error("Error loading mentions:", error);
+        }
+    };
+
+    // Reload mentions when meetingId, refreshTrigger, or currentMeeting.company_id changes
     useEffect(() => {
-        // Only load if we don't have them yet
+        loadMentions();
+    }, [meetingId, imagesRefreshTrigger, currentMeeting?.company_id]);
+
+    // Load Providers on Mount
+    useEffect(() => {
         if (!providers) {
             loadProviders();
         }
     }, []);
 
     const loadProviders = async (force = false) => {
-        // Stop if already loading
         if (isLoadingProviders) return;
-
-        // Stop if we already have data and aren't forcing a refresh
         if (providers && !force) return;
 
         setIsLoadingProviders(true);
-        console.log("Fetching LLM providers...");
         try {
             const response = await llmApi.getProviders();
-            console.log("LLM Providers received:", response.data);
             setProviders(response.data);
         } catch (error) {
             console.error('Error loading providers:', error);
@@ -300,6 +356,78 @@ export default function MeetingRoom() {
         setSummaryConfig({ provider: newProvider, model: newModel });
     };
 
+    const handleInputChange = (e) => {
+        const newValue = e.target.value;
+        setInputMessage(newValue);
+
+        const cursorIndex = e.target.selectionStart;
+
+        // Check if we are currently typing a mention
+        const textBeforeCursor = newValue.slice(0, cursorIndex);
+        const lastAtSymbolIndex = textBeforeCursor.lastIndexOf('@');
+
+        if (lastAtSymbolIndex !== -1) {
+            const query = textBeforeCursor.slice(lastAtSymbolIndex + 1);
+
+            // Only allow simple queries without spaces for now
+            if (!query.includes(' ')) {
+                setMentionQuery(query);
+                setMentionCursorIndex(lastAtSymbolIndex);
+                setShowMentionDropdown(true);
+
+                // Filter mentions
+                const filtered = availableMentions.filter(m =>
+                    m.label.toLowerCase().includes(query.toLowerCase()) ||
+                    m.display.toLowerCase().includes(query.toLowerCase())
+                );
+                setFilteredMentions(filtered);
+                setSelectedMentionIndex(0);
+                return;
+            }
+        }
+
+        setShowMentionDropdown(false);
+    };
+
+    const handleKeyDown = (e) => {
+        if (!showMentionDropdown || filteredMentions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedMentionIndex(prev => (prev + 1) % filteredMentions.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedMentionIndex(prev => (prev - 1 + filteredMentions.length) % filteredMentions.length);
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            selectMention(filteredMentions[selectedMentionIndex]);
+        } else if (e.key === 'Escape') {
+            setShowMentionDropdown(false);
+        }
+    };
+
+    const selectMention = (mention) => {
+        const textBeforeAt = inputMessage.slice(0, mentionCursorIndex);
+        const textAfterCursor = inputMessage.slice(inputRef.current.selectionStart);
+
+        const newValue = `${textBeforeAt}${mention.display} ${textAfterCursor}`;
+        setInputMessage(newValue);
+        setShowMentionDropdown(false);
+
+        // Restore focus and set cursor position
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                const newCursorPos = textBeforeAt.length + mention.display.length + 1;
+                inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 0);
+    };
+
+    const handleInsertMention = (mentionText) => {
+        setInputMessage(prev => prev + (prev ? ' ' : '') + mentionText + ' ');
+    };
+
     const participantStaff = currentMeeting?.participants?.map(p =>
         staff.find(s => s.id === p.staff_id)
     ).filter(Boolean) || [];
@@ -320,9 +448,6 @@ export default function MeetingRoom() {
                             {currentMeeting?.status === 'active' && (
                                 <button
                                     onClick={() => {
-                                        // We pass 'true' here to force a refresh only when the user 
-                                        // explicitly opens the menu, ensuring the model list is up to date
-                                        // without spamming it during normal page usage.
                                         loadProviders(true);
                                         setShowEndModal(true);
                                     }}
@@ -347,7 +472,6 @@ export default function MeetingRoom() {
                                 </div>
                             )}
                             {messages.map((message, idx) => {
-                                // Find participant info for this message
                                 const participantInfo = currentMeeting?.participants?.find(
                                     p => p.staff_id === message.staff_id
                                 );
@@ -369,7 +493,6 @@ export default function MeetingRoom() {
                                         <div className="text-xs opacity-70 mb-1">
                                             <span className="font-medium">{member.name}</span> is thinking...
                                         </div>
-                                        {/* Thinking Animation (Fallback if component fails) */}
                                         <div className="flex gap-1 mt-1">
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
@@ -382,7 +505,7 @@ export default function MeetingRoom() {
                         </div>
 
                         {currentMeeting?.status === 'active' && (
-                            <div className="bg-white border-t border-gray-200 p-6">
+                            <div className="bg-white border-t border-gray-200 p-6 relative">
                                 {showImageUpload ? (
                                     <div className="mb-4">
                                         <ImageUpload onImageSelect={() => { }} onUpload={handleImageUpload} />
@@ -397,8 +520,42 @@ export default function MeetingRoom() {
                                                 {participantStaff.map((member) => <option key={member.id} value={member.id}>{member.name} - {member.role}</option>)}
                                             </select>
                                         </div>
-                                        <div className="flex gap-3">
-                                            <input type="text" className="input flex-1" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} placeholder="Type your message..." disabled={isStreaming} />
+                                        <div className="flex gap-3 relative">
+                                            {/* Autocomplete Dropdown */}
+                                            {showMentionDropdown && filteredMentions.length > 0 && (
+                                                <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+                                                    {filteredMentions.map((mention, index) => (
+                                                        <div
+                                                            key={mention.id}
+                                                            className={`p-2 flex items-center gap-2 cursor-pointer ${index === selectedMentionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                                            onClick={() => selectMention(mention)}
+                                                        >
+                                                            <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+                                                                {mention.type === 'image' || (mention.type === 'asset' && mention.url) ? (
+                                                                    <img src={mention.url} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span className="text-xs">📄</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="font-medium text-sm text-gray-900 truncate">{mention.display}</div>
+                                                                {mention.description && <div className="text-xs text-gray-500 truncate">{mention.description}</div>}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <input
+                                                ref={inputRef}
+                                                type="text"
+                                                className="input flex-1"
+                                                value={inputMessage}
+                                                onChange={handleInputChange}
+                                                onKeyDown={handleKeyDown}
+                                                placeholder="Type your message... Use @imgN to refer to images"
+                                                disabled={isStreaming}
+                                            />
                                             <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
                                             <button type="submit" className="btn-primary" disabled={isStreaming || !selectedStaffId}>{isStreaming ? 'Sending...' : 'Send'}</button>
                                             <button type="button" onClick={handleAskAll} className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700" disabled={isStreaming || participantStaff.length === 0}>Ask All</button>
@@ -410,7 +567,7 @@ export default function MeetingRoom() {
                     </div>
 
                     <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
-                        <div className="mb-6"><ImageSidebarPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} refreshTrigger={imagesRefreshTrigger} /></div>
+                        <div className="mb-6"><ImageSidebarPanel meetingId={parseInt(meetingId)} companyId={currentMeeting?.company_id} isActive={currentMeeting?.status === 'active'} refreshTrigger={imagesRefreshTrigger} onInsertMention={handleInsertMention} /></div>
                         <div className="mb-6">
                             <h3 className="font-semibold text-gray-900 mb-4">Participants ({participantStaff.length})</h3>
                             <div className="space-y-3">
@@ -465,7 +622,6 @@ export default function MeetingRoom() {
                             </select>
                         </div>
 
-                        {/* Updated Logic for Showing Models with Loading State */}
                         {summaryConfig.provider === 'ollama' && (
                             <div className="mb-6">
                                 <label className="label">Model</label>

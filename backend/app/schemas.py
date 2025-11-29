@@ -190,6 +190,29 @@ class MeetingImage(BaseModel):
         from_attributes = True
 
 
+# Company Asset Schemas
+class CompanyAssetCreate(BaseModel):
+    asset_name: str
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    asset_type: str = "image"
+
+class CompanyAsset(BaseModel):
+    id: int
+    company_id: int
+    asset_name: str
+    display_name: str
+    description: Optional[str]
+    file_path: str
+    asset_type: str
+    file_size: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Action Item Schemas
 class ActionItemCreate(BaseModel):
     description: str
@@ -232,8 +255,7 @@ class Knowledge(KnowledgeBase):
 class OllamaModelsResponse(BaseModel):
     models: List[str]
     base_url: Optional[str]
-
-
+    
 class LLMProvidersResponse(BaseModel):
     providers: List[str]
     default_provider: str

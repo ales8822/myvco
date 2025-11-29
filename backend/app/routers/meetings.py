@@ -12,6 +12,7 @@ from ..database import get_db
 from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
+from ..services.mention_parser import mention_parser
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -180,8 +181,15 @@ async def send_message(
     
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
-    image_context = memory_service.get_current_meeting_image(db, meeting_id)
-    image_path = memory_service.get_current_image_path(db, meeting_id)
+    
+    # Parse @mentions from message content to get image paths
+    image_paths, missing_mentions = mention_parser.resolve_all_mentions(
+        message.content, meeting_id, meeting.company_id, db
+    )
+    
+    # Warn if any mentions were not found
+    if missing_mentions:
+        print(f"WARNING: Missing mentions in message: {missing_mentions}")
 
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
     
@@ -191,7 +199,7 @@ async def send_message(
         personality=staff.personality,
         expertise=staff.expertise,
         company_context=knowledge_context,
-        meeting_context=meeting_context + image_context,
+        meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else ""
     )
@@ -203,7 +211,7 @@ async def send_message(
             system_prompt=system_prompt, 
             provider=p_llm_provider, 
             model=p_llm_model,       
-            image_path=image_path
+            image_paths=image_paths
         ):
             response_parts.append(chunk)
             yield chunk
@@ -282,8 +290,15 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
             
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, company_id)
-    image_context = memory_service.get_current_meeting_image(db, meeting_id)
-    image_path = memory_service.get_current_image_path(db, meeting_id)
+    
+    # Parse @mentions from message content to get image paths
+    image_paths, missing_mentions = mention_parser.resolve_all_mentions(
+        message.content, meeting_id, company_id, db
+    )
+    
+    # Warn if any mentions were not found
+    if missing_mentions:
+        print(f"WARNING: Missing mentions in ask_all: {missing_mentions}")
     
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
     company_name = company.name if company else "MyVCO"
@@ -299,7 +314,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 personality=p_data['personality'],
                 expertise=p_data['expertise'], 
                 company_context=knowledge_context,
-                meeting_context=meeting_context + image_context,
+                meeting_context=meeting_context,
                 company_name=company_name,
                 company_description=company_desc
             )
@@ -315,7 +330,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 system_prompt=system_prompt, 
                 provider=p_data['llm_provider'],
                 model=p_data['llm_model'],
-                image_path=image_path
+                image_paths=image_paths
             ):
                 response_parts.append(chunk)
                 yield chunk
@@ -353,6 +368,10 @@ async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreat
         image_filename = f"meeting_{meeting_id}_{datetime.utcnow().timestamp()}.png"
         abs_image_path = os.path.join(UPLOADS_DIR, image_filename)
         
+        # Auto-assign display_order based on existing images count
+        existing_images_count = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).count()
+        display_order = existing_images_count + 1
+        
         with open(abs_image_path, "wb") as f:
             f.write(image_data)
             f.flush()
@@ -363,6 +382,7 @@ async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreat
         db_image = MeetingImage(
             meeting_id=meeting_id,
             image_path=relative_path,
+            display_order=display_order,
             analysis=None,
             image_metadata=image.description
         )
@@ -381,11 +401,12 @@ async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreat
 
 @router.get("/{meeting_id}/images")
 def get_meeting_images(meeting_id: int, db: Session = Depends(get_db)):
-    images = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).all()
+    images = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).order_by(MeetingImage.display_order).all()
     return [{
         "id": img.id,
         "image_url": f"/{img.image_path.replace(os.sep, '/')}",
         "description": img.image_metadata,
+        "display_order": img.display_order,
         "created_at": img.created_at
     } for img in images]
 

@@ -6,6 +6,7 @@ from .staff import router as staff_router
 from .meetings import router as meetings_router
 from .knowledge import router as knowledge_router
 from .llm import router as llm_router
+from .assets import router as assets_router
 
 __all__ = [
     "companies_router",
@@ -13,5 +14,6 @@ __all__ = [
     "staff_router",
     "meetings_router",
     "knowledge_router",
-    "llm_router"
+    "llm_router",
+    "assets_router"
 ]

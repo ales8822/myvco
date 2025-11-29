@@ -4,6 +4,7 @@ from .department import Department
 from .staff import Staff
 from .meeting import Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, MeetingTemplate
 from .knowledge import Knowledge
+from .company_asset import CompanyAsset
 
 __all__ = [
     "Company",
@@ -15,5 +16,7 @@ __all__ = [
     "MeetingImage",
     "ActionItem",
     "MeetingTemplate",
-    "Knowledge"
+    "Knowledge",
+    "CompanyAsset"
 ]
+

@@ -53,13 +53,13 @@ class LLMService:
         provider: str = "gemini",
         model: Optional[str] = None,
         temperature: float = 0.7,
-        image_path: Optional[str] = None
+        image_paths: List[str] = []
     ) -> AsyncGenerator[str, None]:
         if provider == "gemini":
-            async for chunk in self._generate_gemini_stream(prompt, system_prompt, model, temperature, image_path):
+            async for chunk in self._generate_gemini_stream(prompt, system_prompt, model, temperature, image_paths):
                 yield chunk
         elif provider == "ollama":
-            async for chunk in self._generate_ollama_stream(prompt, system_prompt, model, temperature, image_path):
+            async for chunk in self._generate_ollama_stream(prompt, system_prompt, model, temperature, image_paths):
                 yield chunk
         else:
             yield f"Error: Unknown provider '{provider}'"
@@ -70,7 +70,7 @@ class LLMService:
         system_prompt: str,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        image_path: Optional[str] = None
+        image_paths: List[str] = []
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Gemini"""
         try:
@@ -80,17 +80,19 @@ class LLMService:
             full_prompt = f"{system_prompt}\n\nUser: {prompt}"
             content = []
             
-            if image_path:
-                try:
-                    import PIL.Image
-                    with open(image_path, 'rb') as f:
-                        img = PIL.Image.open(f)
-                        img.load()
-                        content.append(img)
-                        content.append(full_prompt)
-                except Exception as e:
-                    yield f"[SYSTEM ERROR: Could not load image: {str(e)}]\n"
-                    content = [full_prompt]
+            # Load all images if provided
+            if image_paths:
+                import PIL.Image
+                for img_path in image_paths:
+                    try:
+                        with open(img_path, 'rb') as f:
+                            img = PIL.Image.open(f)
+                            img.load()
+                            content.append(img)
+                    except Exception as e:
+                        yield f"[SYSTEM ERROR: Could not load image {img_path}: {str(e)}]\n"
+                
+                content.append(full_prompt)
             else:
                 content = [full_prompt]
             
@@ -112,7 +114,7 @@ class LLMService:
         system_prompt: str,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        image_path: Optional[str] = None
+        image_paths: List[str] = []
     ) -> AsyncGenerator[str, None]:
         """Generate streaming response from Ollama"""
         if not settings.ollama_base_url:
@@ -130,15 +132,21 @@ class LLMService:
                     "options": {"temperature": temperature}
                 }
 
-                if image_path:
-                    try:
-                        print(f"DEBUG: Encoding image for Ollama from: {image_path}")
-                        with open(image_path, "rb") as image_file:
-                            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                        payload["images"] = [encoded_string]
-                    except Exception as e:
-                        print(f"Error encoding image for Ollama: {e}")
-                        yield f"[SYSTEM ERROR: Failed to load image for Ollama: {str(e)}]\n"
+                # Encode all images if provided
+                if image_paths:
+                    encoded_images = []
+                    for img_path in image_paths:
+                        try:
+                            print(f"DEBUG: Encoding image for Ollama from: {img_path}")
+                            with open(img_path, "rb") as image_file:
+                                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                                encoded_images.append(encoded_string)
+                        except Exception as e:
+                            print(f"Error encoding image {img_path} for Ollama: {e}")
+                            yield f"[SYSTEM ERROR: Failed to load image {img_path} for Ollama: {str(e)}]\n"
+                    
+                    if encoded_images:
+                        payload["images"] = encoded_images
                 
                 target_url = f"{settings.ollama_base_url}/api/generate"
                 print(f"DEBUG: Connecting to Ollama at {target_url} with model {payload['model']}")
