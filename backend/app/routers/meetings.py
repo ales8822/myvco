@@ -3,13 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
+# backend\app\routers\meetings.py
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+from typing import List
 from datetime import datetime
 from pathlib import Path
 import os
 import base64
 from .. import schemas
 from ..database import get_db
-from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department
+from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department, CompanyAsset
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
 from ..services.mention_parser import mention_parser
@@ -18,6 +23,39 @@ router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "meeting_images")
+
+def link_mentioned_assets(db: Session, meeting_id: int, company_id: int, text: str):
+    """
+    Check for company asset mentions in text and create MeetingImage records if they don't exist.
+    This allows "discussed" assets to appear in the meeting images panel.
+    """
+    mentions = mention_parser.parse_mentions(text)
+    for mention in mentions:
+        if not mention.startswith('img'):
+            # Check if it's a company asset
+            asset = db.query(CompanyAsset).filter(
+                CompanyAsset.company_id == company_id,
+                CompanyAsset.asset_name == mention
+            ).first()
+            
+            if asset:
+                # Check if already linked (by path)
+                existing = db.query(MeetingImage).filter(
+                    MeetingImage.meeting_id == meeting_id,
+                    MeetingImage.image_path == asset.file_path
+                ).first()
+                
+                if not existing:
+                    # Link it
+                    count = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).count()
+                    new_image = MeetingImage(
+                        meeting_id=meeting_id,
+                        image_path=asset.file_path,
+                        display_order=count + 1,
+                        image_metadata=asset.display_name
+                    )
+                    db.add(new_image)
+                    db.commit()
 
 @router.post("/companies/{company_id}/meetings", response_model=schemas.Meeting)
 def create_meeting(company_id: int, meeting: schemas.MeetingCreate, db: Session = Depends(get_db)):
@@ -179,6 +217,9 @@ async def send_message(
         db.add(user_message)
         db.commit()
     
+    # Link mentioned company assets to meeting images
+    link_mentioned_assets(db, meeting_id, meeting.company_id, message.content)
+    
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
     
@@ -271,6 +312,9 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
     )
     db.add(user_message)
     db.commit()
+    
+    # Link mentioned company assets to meeting images
+    link_mentioned_assets(db, meeting_id, company_id, message.content)
     
     participants_query = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
     

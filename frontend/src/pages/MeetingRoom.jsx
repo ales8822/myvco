@@ -225,6 +225,7 @@ export default function MeetingRoom() {
                 }
             }
             setIsStreaming(false);
+            setImagesRefreshTrigger(Date.now());
         } catch (error) {
             console.error('Error sending message:', error);
             setIsStreaming(false);
@@ -308,6 +309,7 @@ export default function MeetingRoom() {
 
         await Promise.all(participants.map((member, index) => fetchStaffResponse(member, index)));
         setIsStreaming(false);
+        setImagesRefreshTrigger(Date.now());
     };
 
     const handleImageUpload = async (imageData) => {
