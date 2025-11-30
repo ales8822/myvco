@@ -1,7 +1,9 @@
 # backend\app\routers\knowledge.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+import io
+from pypdf import PdfReader
 from ..database import get_db
 from ..models import Knowledge, Company
 from .. import schemas
@@ -10,18 +12,58 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 
 @router.post("/companies/{company_id}/knowledge", response_model=schemas.Knowledge)
-def add_knowledge(
+async def add_knowledge(
     company_id: int,
-    knowledge: schemas.KnowledgeCreate,
+    title: str = Form(...),
+    content: Optional[str] = Form(None),
+    source: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    """Add knowledge entry to company knowledge base"""
+    """Add knowledge entry (Supports Manual Text OR PDF File)"""
+    
     # Verify company exists
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     
-    db_knowledge = Knowledge(**knowledge.model_dump(), company_id=company_id)
+    final_content = content or ""
+    
+    # Process PDF if uploaded
+    if file:
+        if file.filename.endswith('.pdf'):
+            try:
+                # Read PDF content
+                pdf_bytes = await file.read()
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                
+                extracted_text = ""
+                for page in reader.pages:
+                    extracted_text += page.extract_text() + "\n"
+                
+                # Append extracted text to content
+                if final_content:
+                    final_content += "\n\n--- Extracted from PDF ---\n\n"
+                final_content += extracted_text
+                
+                # Auto-set source if missing
+                if not source:
+                    source = file.filename
+                    
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to parse PDF: {str(e)}")
+        else:
+            raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+            
+    if not final_content.strip():
+        raise HTTPException(status_code=400, detail="Content is required (enter text or upload a PDF).")
+
+    db_knowledge = Knowledge(
+        company_id=company_id,
+        title=title,
+        content=final_content,
+        source=source
+    )
     db.add(db_knowledge)
     db.commit()
     db.refresh(db_knowledge)
@@ -44,4 +86,3 @@ def delete_knowledge(knowledge_id: int, db: Session = Depends(get_db)):
     db.delete(knowledge)
     db.commit()
     return {"message": "Knowledge entry deleted successfully"}
-

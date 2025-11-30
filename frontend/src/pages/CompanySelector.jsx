@@ -5,7 +5,7 @@ import { useCompanyStore } from '../stores/companyStore';
 
 export default function CompanySelector() {
     const navigate = useNavigate();
-    const { companies, fetchCompanies, selectCompany, createCompany, loading } =
+    const { companies, fetchCompanies, selectCompany, createCompany, deleteCompany, archiveCompany, loading } =
         useCompanyStore();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
@@ -35,10 +35,24 @@ export default function CompanySelector() {
         }
     };
 
+    const handleArchive = async (e, companyId) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to archive this company?')) {
+            await archiveCompany(companyId);
+        }
+    };
+
+    const handleDelete = async (e, companyId) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to PERMANENTLY delete this company? This action cannot be undone.')) {
+            await deleteCompany(companyId);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
             <div className="container mx-auto px-4 py-16 relative">
-                
+
                 {/* Settings Button */}
                 <button
                     onClick={() => navigate('/settings')}
@@ -93,8 +107,25 @@ export default function CompanySelector() {
                                 <div
                                     key={company.id}
                                     onClick={() => handleSelectCompany(company.id)}
-                                    className="card hover:shadow-lg transition-shadow cursor-pointer group"
+                                    className="card hover:shadow-lg transition-shadow cursor-pointer group relative"
                                 >
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => handleArchive(e, company.id)}
+                                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                            title="Archive Company"
+                                        >
+                                            📥
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDelete(e, company.id)}
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Delete Company"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+
                                     <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg mb-4 group-hover:scale-110 transition-transform">
                                         <span className="text-2xl font-bold text-white">
                                             {company.name.charAt(0).toUpperCase()}

@@ -1,5 +1,4 @@
-// frontend\src\pages\KnowledgeBase.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useCompanyStore } from '../stores/companyStore';
 import { knowledgeApi } from '../lib/api';
 import Sidebar from '../components/Sidebar';
@@ -9,11 +8,13 @@ export default function KnowledgeBase() {
     const [knowledge, setKnowledge] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [formData, setFormData] = useState({
-        title: '',
-        content: '',
-        source: '',
-    });
+
+    // Form State
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [source, setSource] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (currentCompany) {
@@ -35,13 +36,31 @@ export default function KnowledgeBase() {
 
     const handleAddKnowledge = async (e) => {
         e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('content', content);
+        formData.append('source', source);
+
+        if (selectedFile) {
+            formData.append('file', selectedFile);
+        }
+
         try {
             await knowledgeApi.create(currentCompany.id, formData);
             setShowAddModal(false);
-            setFormData({ title: '', content: '', source: '' });
+
+            // Reset Form
+            setTitle('');
+            setContent('');
+            setSource('');
+            setSelectedFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+
             fetchKnowledge();
         } catch (error) {
             console.error('Error adding knowledge:', error);
+            alert("Failed to add knowledge. Please check the logs.");
         }
     };
 
@@ -109,7 +128,7 @@ export default function KnowledgeBase() {
                                             Delete
                                         </button>
                                     </div>
-                                    <p className="text-gray-700 mb-3 whitespace-pre-wrap">
+                                    <p className="text-gray-700 mb-3 whitespace-pre-wrap max-h-60 overflow-y-auto border border-gray-100 p-3 rounded bg-gray-50">
                                         {entry.content}
                                     </p>
                                     {entry.source && (
@@ -130,7 +149,7 @@ export default function KnowledgeBase() {
             {/* Add Knowledge Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-2xl w-full">
+                    <div className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <h2 className="text-2xl font-bold text-gray-900 mb-6">
                             Add Knowledge Entry
                         </h2>
@@ -140,41 +159,55 @@ export default function KnowledgeBase() {
                                 <input
                                     type="text"
                                     className="input"
-                                    value={formData.title}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, title: e.target.value })
-                                    }
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
                                     required
                                 />
                             </div>
+
+                            <div className="mb-4 p-4 border border-blue-100 bg-blue-50 rounded-lg">
+                                <label className="label text-blue-800 mb-2">Option 1: Upload PDF File</label>
+                                <input
+                                    type="file"
+                                    accept=".pdf"
+                                    ref={fileInputRef}
+                                    onChange={(e) => setSelectedFile(e.target.files[0])}
+                                    className="block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-blue-600 file:text-white
+                                        hover:file:bg-blue-700"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Text will be extracted automatically.</p>
+                            </div>
+
                             <div className="mb-4">
-                                <label className="label">Content *</label>
+                                <label className="label">Option 2: Manual Content</label>
                                 <textarea
                                     className="input"
-                                    rows="8"
-                                    value={formData.content}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, content: e.target.value })
-                                    }
-                                    placeholder="Enter the knowledge content..."
-                                    required
+                                    rows="6"
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    placeholder="Or type/paste content here directly..."
+                                    // Make required only if no file selected
+                                    required={!selectedFile}
                                 />
                             </div>
+
                             <div className="mb-6">
-                                <label className="label">Source</label>
+                                <label className="label">Source (Optional)</label>
                                 <input
                                     type="text"
                                     className="input"
-                                    value={formData.source}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, source: e.target.value })
-                                    }
-                                    placeholder="e.g., URL, document name, or 'manual'"
+                                    value={source}
+                                    onChange={(e) => setSource(e.target.value)}
+                                    placeholder="e.g., URL, Manual V1.0"
                                 />
                             </div>
                             <div className="flex gap-3">
                                 <button type="submit" className="btn-primary flex-1">
-                                    Add Knowledge
+                                    {selectedFile ? 'Upload & Add' : 'Add Knowledge'}
                                 </button>
                                 <button
                                     type="button"
@@ -191,4 +224,3 @@ export default function KnowledgeBase() {
         </div>
     );
 }
-

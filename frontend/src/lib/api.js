@@ -10,11 +10,12 @@ const api = axios.create({
 
 // Companies
 export const companiesApi = {
-  list: () => api.get("/companies"),
+  list: (params) => api.get("/companies", { params }),
   get: (id) => api.get(`/companies/${id}`),
   create: (data) => api.post("/companies", data),
   update: (id, data) => api.put(`/companies/${id}`, data),
   delete: (id) => api.delete(`/companies/${id}`),
+  archive: (id) => api.put(`/companies/${id}/archive`),
 };
 
 // Departments
@@ -63,8 +64,22 @@ export const meetingsApi = {
 // Knowledge
 export const knowledgeApi = {
   list: (companyId) => api.get(`/knowledge/companies/${companyId}/knowledge`),
-  create: (companyId, data) =>
-    api.post(`/knowledge/companies/${companyId}/knowledge`, data),
+  create: (companyId, data) => {
+    // Check if data is FormData (file upload) or JSON
+    if (data instanceof FormData) {
+      return api.post(`/knowledge/companies/${companyId}/knowledge`, data, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    }
+    // Fallback for simple JSON (though backend now prefers Form, this keeps older calls safe if any)
+    // Actually, backend now strictly requires Form Data for this endpoint.
+    // So we should convert object to FormData if it isn't already.
+    const formData = new FormData();
+    Object.keys(data).forEach(key => formData.append(key, data[key]));
+    return api.post(`/knowledge/companies/${companyId}/knowledge`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+  },
   delete: (id) => api.delete(`/knowledge/${id}`),
 };
 
@@ -90,3 +105,4 @@ export const assetsApi = {
   delete: (companyId, assetId) => api.delete(`/companies/${companyId}/assets/${assetId}`),
 };
 
+export default api;

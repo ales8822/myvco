@@ -6,6 +6,7 @@ import StaffManagement from './pages/StaffManagement';
 import MeetingRoom from './pages/MeetingRoom';
 import KnowledgeBase from './pages/KnowledgeBase';
 import Settings from './pages/Settings';
+import ArchivedCompanies from './pages/ArchivedCompanies';
 
 function App() {
     const { currentCompany } = useCompanyStore();
@@ -30,10 +31,8 @@ function App() {
                     path="/knowledge"
                     element={currentCompany ? <KnowledgeBase /> : <Navigate to="/" />}
                 />
-                <Route 
-                    path="/settings" 
-                    element={currentCompany ? <Settings /> : <Navigate to="/" />} 
-                />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/archived-companies" element={<ArchivedCompanies />} />
             </Routes>
         </BrowserRouter>
     );

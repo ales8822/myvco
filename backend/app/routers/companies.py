@@ -1,5 +1,5 @@
 # backend\app\routers\companies.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
@@ -7,6 +7,18 @@ from ..models import Company
 from .. import schemas
 
 router = APIRouter(prefix="/companies", tags=["companies"])
+
+
+@router.get("", response_model=List[schemas.Company])
+def list_companies(
+    include_archived: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    """List all companies"""
+    query = db.query(Company)
+    if not include_archived:
+        query = query.filter(Company.is_archived == False)
+    return query.all()
 
 
 @router.post("", response_model=schemas.Company)
@@ -17,21 +29,6 @@ def create_company(company: schemas.CompanyCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(db_company)
     return db_company
-
-
-@router.get("", response_model=List[schemas.Company])
-def list_companies(db: Session = Depends(get_db)):
-    """List all companies"""
-    return db.query(Company).all()
-
-
-@router.get("/{company_id}", response_model=schemas.Company)
-def get_company(company_id: int, db: Session = Depends(get_db)):
-    """Get company by ID"""
-    company = db.query(Company).filter(Company.id == company_id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found")
-    return company
 
 
 @router.put("/{company_id}", response_model=schemas.Company)
@@ -64,4 +61,15 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     db.delete(company)
     db.commit()
     return {"message": "Company deleted successfully"}
+
+@router.put("/{company_id}/archive", response_model=schemas.Company)
+def archive_company(company_id: int, db: Session = Depends(get_db)):
+    """Toggle archive status of a company"""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    company.is_archived = not company.is_archived
+    db.commit()
+    db.refresh(company)
+    return company
 

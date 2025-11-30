@@ -1,5 +1,5 @@
 # backend\app\models\company.py
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -14,6 +14,7 @@ class Company(Base):
     description = Column(Text)
     industry = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
+    is_archived = Column(Boolean, default=False)
     
     # Relationships
     departments = relationship("Department", back_populates="company", cascade="all, delete-orphan")
