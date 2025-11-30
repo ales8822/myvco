@@ -1,21 +1,4 @@
 <!-- README.md -->
-# MyVCO - My Virtual Company
-
-A professional application for managing virtual companies with AI-powered staff members who maintain context, memory, and engage in meaningful meetings.
-
-## 🚀 Features
-
-- **Company Management**: Create and manage multiple virtual companies
-- **AI Staff**: Hire AI-powered staff members with unique roles, personalities, and expertise
-- **Smart Meetings**: Conduct meetings with context-aware AI staff that remember previous discussions
-- **Knowledge Base**: Build a company knowledge base that AI staff can reference
-- **Dual LLM Support**: Use Google Gemini API or Ollama models via RunPod
-- **Memory System**: AI staff maintain context from previous meetings and company knowledge
-
-## 📁 Project Structure
-
-```
-myvco/
 ├── backend/          # FastAPI backend
 │   ├── app/
 │   │   ├── models/   # Database models
@@ -94,10 +77,12 @@ Frontend will be available at: http://localhost:5173
 ## 🎯 Usage
 
 1. **Create a Company**: Start by creating your first virtual company
-2. **Hire Staff**: Add AI staff members with different roles and personalities
-3. **Add Knowledge**: Build your company's knowledge base
-4. **Start Meetings**: Create meetings and have conversations with your AI staff
-5. **Context-Aware Responses**: AI staff will reference company knowledge and previous discussions
+2. **Configure Settings**: Set up your Gemini API key or Ollama URL in the Settings page
+3. **Hire Staff**: Add AI staff members with different roles and personalities
+4. **Add Knowledge & Assets**: Build your company's knowledge base and upload assets
+5. **Start Meetings**: Create meetings and have conversations with your AI staff
+6. **Context-Aware Responses**: AI staff will reference company knowledge and previous discussions
+7. **Manage Companies**: Archive companies you no longer need, or permanently delete them
 
 ## 🔧 Technology Stack
 
@@ -119,11 +104,12 @@ Frontend will be available at: http://localhost:5173
 ## 📝 API Endpoints
 
 ### Companies
-- `GET /companies` - List all companies
+- `GET /companies` - List all companies (supports filtering by archived status)
 - `POST /companies` - Create company
 - `GET /companies/{id}` - Get company details
 - `PUT /companies/{id}` - Update company
 - `DELETE /companies/{id}` - Delete company
+- `PUT /companies/{id}/archive` - Toggle archive status
 
 ### Staff
 - `POST /staff/companies/{id}/staff` - Hire staff
@@ -143,6 +129,15 @@ Frontend will be available at: http://localhost:5173
 - `POST /knowledge/companies/{id}/knowledge` - Add knowledge
 - `GET /knowledge/companies/{id}/knowledge` - List knowledge
 - `DELETE /knowledge/{id}` - Delete knowledge
+
+### Settings
+- `GET /settings` - Get application settings
+- `POST /settings` - Update application settings
+
+### Assets
+- `GET /companies/{id}/assets` - List company assets
+- `POST /companies/{id}/assets` - Create asset
+- `DELETE /companies/{id}/assets/{assetId}` - Delete asset
 
 ### LLM
 - `GET /llm/providers` - Get available providers
