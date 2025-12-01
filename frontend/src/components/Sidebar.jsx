@@ -27,18 +27,6 @@ export default function Sidebar() {
                     👥 Staff
                 </Link>
                 <Link
-                    to="/knowledge"
-                    className="block px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium mb-2"
-                >
-                    📚 Knowledge Base
-                </Link>
-                {/* <Link
-                    to="/settings"
-                    className="block px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium mb-2"
-                >
-                    ⚙️ Settings
-                </Link> */}
-                <Link
                     to="/"
                     className="block px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-700 font-medium mt-8"
                 >

@@ -5,6 +5,7 @@ from .staff import Staff
 from .meeting import Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, MeetingTemplate
 from .knowledge import Knowledge
 from .company_asset import CompanyAsset
+from .library import LibraryItem
 
 __all__ = [
     "Company",
@@ -17,6 +18,7 @@ __all__ = [
     "ActionItem",
     "MeetingTemplate",
     "Knowledge",
-    "CompanyAsset"
+    "CompanyAsset",
+    "LibraryItem"
 ]
 

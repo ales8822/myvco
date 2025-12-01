@@ -3,8 +3,10 @@ import httpx
 import json
 import traceback
 import os
+import re
 import base64
 from typing import AsyncGenerator, Optional, List, Dict
+from sqlalchemy.orm import Session
 from ..config import settings
 
 class LLMService:
@@ -185,19 +187,61 @@ class LLMService:
             # Return detailed error to UI
             yield f"Error generating Ollama response: {repr(e)}"
 
-    def build_system_prompt(self, staff_name, role, personality, expertise, company_context, meeting_context, company_name="MyVCO", company_description=""):
+    def resolve_dependencies(self, text: str, db: Session) -> str:
+        """
+        Replace @tag_name with content from LibraryItem table.
+        """
+        if not text or not db:
+            return text
+            
+        # Find all matches of @tag_name
+        # \w+ matches alphanumeric + underscore
+        matches = re.findall(r'@(\w+)', text)
+        
+        if not matches:
+            return text
+            
+        # Avoid circular imports
+        from ..models import LibraryItem
+        
+        resolved_text = text
+        for slug in matches:
+            item = db.query(LibraryItem).filter(LibraryItem.slug == slug).first()
+            if item:
+                # Replace @slug with content
+                # We use word boundary to ensure we don't replace @super_coder when looking for @super
+                pattern = f"@{slug}\\b"
+                resolved_text = re.sub(pattern, f"\\n[Start of {item.name}]\\n{item.content}\\n[End of {item.name}]\\n", resolved_text)
+        
+        return resolved_text
+
+    def build_system_prompt(self, staff_name, role, personality, expertise, company_context, meeting_context, company_name="MyVCO", company_description="", db: Session = None):
+        # Resolve dependencies in personality and expertise
+        if db:
+            if personality:
+                personality = self.resolve_dependencies(personality, db)
+            
+            # Expertise is a list, join it first or handle list
+            if isinstance(expertise, list):
+                expertise_str = ", ".join(expertise)
+                expertise_str = self.resolve_dependencies(expertise_str, db)
+            else:
+                expertise_str = self.resolve_dependencies(str(expertise or ""), db)
+        else:
+            expertise_str = ", ".join(expertise) if isinstance(expertise, list) else str(expertise or "")
+
         prompt_parts = [
             f"You are {staff_name}, a {role} at {company_name}.",
-            f"{company_description}\n" if company_description else "",
+            f"{company_description}\\n" if company_description else "",
             f"Your Personality: {personality}",
-            f"Your Expertise: {expertise}\n",
+            f"Your Expertise: {expertise_str}\\n",
             "Company Knowledge:",
-            f"{company_context}\n" if company_context else "No specific context available.\n",
+            f"{company_context}\\n" if company_context else "No specific context available.\\n",
             "Meeting Context:",
-            f"{meeting_context}\n" if meeting_context else "No previous context.\n",
+            f"{meeting_context}\\n" if meeting_context else "No previous context.\\n",
         ]
-        prompt_parts.append("\nRespond naturally as this character.")
-        return "\n".join(prompt_parts)
+        prompt_parts.append("\\nRespond naturally as this character.")
+        return "\\n".join(prompt_parts)
     
     async def analyze_image(self, image_path, context=None):
         try:

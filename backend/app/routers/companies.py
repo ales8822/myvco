@@ -1,4 +1,3 @@
-# backend\app\routers\companies.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
@@ -29,6 +28,15 @@ def create_company(company: schemas.CompanyCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(db_company)
     return db_company
+
+
+@router.get("/{company_id}", response_model=schemas.Company)
+def get_company(company_id: int, db: Session = Depends(get_db)):
+    """Get a single company by ID"""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
 
 
 @router.put("/{company_id}", response_model=schemas.Company)
@@ -72,4 +80,3 @@ def archive_company(company_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(company)
     return company
-

@@ -3,11 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
-# backend\app\routers\meetings.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-from typing import List
 from datetime import datetime
 from pathlib import Path
 import os
@@ -242,7 +237,8 @@ async def send_message(
         company_context=knowledge_context,
         meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
-        company_description=company.description if company else ""
+        company_description=company.description if company else "",
+        db=db
     )
     
     async def generate_response():
@@ -360,7 +356,8 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 company_context=knowledge_context,
                 meeting_context=meeting_context,
                 company_name=company_name,
-                company_description=company_desc
+                company_description=company_desc,
+                db=db
             )
             
             # Send the staff delimiter first

@@ -6,7 +6,7 @@ import StaffManagement from './pages/StaffManagement';
 import MeetingRoom from './pages/MeetingRoom';
 import KnowledgeBase from './pages/KnowledgeBase';
 import Settings from './pages/Settings';
-import ArchivedCompanies from './pages/ArchivedCompanies';
+import PrototypeLibrary from './pages/PrototypeLibrary'; // Import the Library page
 
 function App() {
     const { currentCompany } = useCompanyStore();
@@ -15,6 +15,8 @@ function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<CompanySelector />} />
+                
+                {/* Protected Routes (require company selected) */}
                 <Route
                     path="/dashboard"
                     element={currentCompany ? <CompanyDashboard /> : <Navigate to="/" />}
@@ -31,8 +33,16 @@ function App() {
                     path="/knowledge"
                     element={currentCompany ? <KnowledgeBase /> : <Navigate to="/" />}
                 />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/archived-companies" element={<ArchivedCompanies />} />
+                
+                {/* Global/Settings Routes */}
+                <Route 
+                    path="/settings" 
+                    element={<Settings />} 
+                />
+                <Route 
+                    path="/library" 
+                    element={<PrototypeLibrary />} 
+                />
             </Routes>
         </BrowserRouter>
     );

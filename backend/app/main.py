@@ -13,7 +13,8 @@ from .routers import (
     knowledge_router,
     llm_router,
     settings as settings_router,
-    assets_router
+    assets_router,
+    library as library_router
 )
 
 # Create FastAPI app
@@ -48,6 +49,7 @@ app.include_router(knowledge_router)
 app.include_router(llm_router)
 app.include_router(settings_router.router)
 app.include_router(assets_router)
+app.include_router(library_router.router)
 
 
 @app.on_event("startup")

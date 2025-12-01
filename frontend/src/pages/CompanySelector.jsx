@@ -53,15 +53,26 @@ export default function CompanySelector() {
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
             <div className="container mx-auto px-4 py-16 relative">
 
-                {/* Settings Button */}
-                <button
-                    onClick={() => navigate('/settings')}
-                    className="absolute top-6 right-6 text-gray-500 hover:text-primary-600 flex items-center gap-2 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
-                    title="Application Settings"
-                >
-                    <span className="text-xl">⚙️</span>
-                    <span className="text-sm font-medium">Settings</span>
-                </button>
+                {/* Global Actions (Settings & Library) */}
+                <div className="absolute top-6 right-6 flex gap-3">
+                    <button
+                        onClick={() => navigate('/library')}
+                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        title="Global Prototype Library"
+                    >
+                        <span className="text-xl">📚</span>
+                        <span className="text-sm font-medium">Library</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/settings')}
+                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        title="Application Settings"
+                    >
+                        <span className="text-xl">⚙️</span>
+                        <span className="text-sm font-medium">Settings</span>
+                    </button>
+                </div>
 
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-gray-900 mb-4">

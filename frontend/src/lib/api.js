@@ -105,4 +105,13 @@ export const assetsApi = {
   delete: (companyId, assetId) => api.delete(`/companies/${companyId}/assets/${assetId}`),
 };
 
+// Library
+export const libraryApi = {
+  list: () => api.get("/library"),
+  get: (slug) => api.get(`/library/${slug}`),
+  create: (data) => api.post("/library", data),
+  update: (id, data) => api.put(`/library/${id}`, data),
+  delete: (id) => api.delete(`/library/${id}`),
+};
+
 export default api;
