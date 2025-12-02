@@ -1,12 +1,12 @@
-// frontend\src\components\ChatBubble.jsx
+// frontend/src/components/ChatBubble.jsx
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Pencil, Check, X, ClipboardCheck } from 'lucide-react';
+import { Copy, Pencil, Check, X, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useMeetingStore } from '../stores/meetingStore';
 import toast from 'react-hot-toast';
 
-export default function ChatBubble({ message, participantInfo }) {
+export default function ChatBubble({ message, participantInfo, onResend }) {
     const isUser = message.sender_type === 'user';
     const { editMessage } = useMeetingStore();
     const [isEditing, setIsEditing] = useState(false);
@@ -32,6 +32,15 @@ export default function ChatBubble({ message, participantInfo }) {
             toast.success('Message updated');
         } catch (error) {
             toast.error('Failed to update message');
+        }
+    };
+
+    const handleResend = async () => {
+        if (!confirm('Resending this message will delete all subsequent messages. Continue?')) {
+            return;
+        }
+        if (onResend) {
+            onResend(message.id);
         }
     };
 
@@ -68,8 +77,8 @@ export default function ChatBubble({ message, participantInfo }) {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-x-auto bg-[#1e1e1e]">
-                    <code className="block text-gray-100 p-4 text-sm font-mono leading-relaxed" {...props}>
+                <div className="overflow-x-auto bg-[#1e1e1e] max-w-full">
+                    <code className="block text-gray-100 p-4 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words" {...props}>
                         {children}
                     </code>
                 </div>
@@ -79,7 +88,7 @@ export default function ChatBubble({ message, participantInfo }) {
 
     return (
         <div
-            className={`flex ${isUser ? 'justify-end' : 'justify-start'} group/bubble`}
+            className={`flex ${isUser ? 'justify-end' : 'justify-start'} group/bubble w-full my-2`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
@@ -89,11 +98,14 @@ export default function ChatBubble({ message, participantInfo }) {
                 </div>
             )}
 
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 relative ${isUser
-                ? 'bg-primary-600 text-white rounded-tr-none'
-                : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
-                }`}>
-
+            {/* Main Bubble Container - Consistent Width Logic */}
+            <div className={`relative px-4 py-3 rounded-2xl transition-all duration-200 
+                ${isEditing ? 'w-[85%]' : 'max-w-[85%]'} 
+                ${isUser
+                    ? 'bg-primary-600 text-white rounded-tr-none'
+                    : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
+                }`}
+            >
                 {/* Header */}
                 <div className="text-xs opacity-70 mb-1 flex justify-between gap-4 items-center">
                     <div className="flex flex-col gap-0.5">
@@ -132,6 +144,15 @@ export default function ChatBubble({ message, participantInfo }) {
                                 >
                                     <Pencil size={14} />
                                 </button>
+                                {isUser && (
+                                    <button
+                                        onClick={handleResend}
+                                        className="p-1 hover:bg-black/10 rounded transition-colors"
+                                        title="Resend message (deletes subsequent messages)"
+                                    >
+                                        <RotateCcw size={14} />
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -148,14 +169,19 @@ export default function ChatBubble({ message, participantInfo }) {
                     </div>
                 )}
 
-                {/* Content */}
+                {/* Content Area */}
                 {isEditing ? (
-                    <div className="mt-2">
+                    <div className="mt-2 w-full">
                         <textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className={`w-full p-2 rounded text-sm ${isUser ? 'bg-primary-700 text-white placeholder-white/50' : 'bg-gray-50 text-gray-900 border border-gray-200'} focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500`}
-                            rows={Math.max(3, editContent.split('\n').length)}
+                            className={`w-full p-3 rounded text-sm min-h-[120px] resize-y 
+                                ${isUser
+                                    ? 'bg-primary-700 text-white placeholder-white/50 border-primary-500 focus:ring-white/30'
+                                    : 'bg-gray-50 text-gray-900 border border-gray-300 focus:ring-blue-500/30'} 
+                                focus:outline-none focus:ring-2`}
+                            rows={Math.max(5, editContent.split('\n').length)}
+                            autoFocus
                         />
                         <div className="flex justify-end gap-2 mt-2">
                             <button
@@ -163,14 +189,14 @@ export default function ChatBubble({ message, participantInfo }) {
                                     setIsEditing(false);
                                     setEditContent(message.content);
                                 }}
-                                className="p-1 rounded hover:bg-black/10 transition-colors"
+                                className={`p-1.5 rounded transition-colors ${isUser ? 'hover:bg-white/20 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
                                 title="Cancel"
                             >
                                 <X size={16} />
                             </button>
                             <button
                                 onClick={handleSaveEdit}
-                                className="p-1 rounded hover:bg-black/10 transition-colors"
+                                className={`p-1.5 rounded transition-colors ${isUser ? 'hover:bg-white/20 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
                                 title="Save"
                             >
                                 <Check size={16} />
@@ -178,11 +204,17 @@ export default function ChatBubble({ message, participantInfo }) {
                         </div>
                     </div>
                 ) : (
-                    <div className={`markdown-content ${isUser ? 'text-white' : 'text-gray-800'}`}>
+                    <div className={`markdown-content w-full ${isUser ? 'text-white' : 'text-gray-800'}`}>
                         <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
-                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                                p: ({ node, children, ...props }) => {
+                                    const hasCodeBlock = node?.children?.some(child => child.tagName === 'code');
+                                    if (hasCodeBlock) {
+                                        return <div className="mb-2 last:mb-0 leading-relaxed" {...props}>{children}</div>;
+                                    }
+                                    return <p className="mb-2 last:mb-0 leading-relaxed break-words" {...props}>{children}</p>;
+                                },
                                 ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2 space-y-1" {...props} />,
                                 ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2 space-y-1" {...props} />,
                                 li: ({ node, ...props }) => <li className="" {...props} />,

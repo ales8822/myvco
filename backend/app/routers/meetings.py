@@ -282,6 +282,100 @@ def update_message(
     db.refresh(message)
     return message
 
+@router.post("/messages/{message_id}/resend")
+async def resend_message(
+    message_id: int,
+    staff_id: int,
+    db: Session = Depends(get_db)
+):
+    """Resend a message - deletes all subsequent messages and regenerates response"""
+    # Get the message to resend
+    message = db.query(MeetingMessage).filter(MeetingMessage.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    if message.sender_type != "user":
+        raise HTTPException(status_code=400, detail="Can only resend user messages")
+    
+    meeting_id = message.meeting_id
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting or meeting.status != "active":
+        raise HTTPException(status_code=400, detail="Meeting not active")
+    
+    # Delete all messages created after this message
+    db.query(MeetingMessage).filter(
+        MeetingMessage.meeting_id == meeting_id,
+        MeetingMessage.created_at > message.created_at
+    ).delete()
+    db.commit()
+    
+    # Get participant info
+    participant = db.query(MeetingParticipant).filter(
+        MeetingParticipant.meeting_id == meeting_id,
+        MeetingParticipant.staff_id == staff_id
+    ).first()
+    
+    if not participant:
+        raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
+    
+    staff = participant.staff
+    p_llm_provider = participant.llm_provider
+    p_llm_model = participant.llm_model
+    
+    # Link mentioned company assets
+    link_mentioned_assets(db, meeting_id, meeting.company_id, message.content)
+    
+    # Get context
+    meeting_context = memory_service.get_meeting_context(db, meeting_id)
+    knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
+    
+    # Parse mentions
+    image_paths, missing_mentions = mention_parser.resolve_all_mentions(
+        message.content, meeting_id, meeting.company_id, db
+    )
+    
+    if missing_mentions:
+        print(f"WARNING: Missing mentions in resend: {missing_mentions}")
+    
+    company = db.query(Company).filter(Company.id == meeting.company_id).first()
+    
+    system_prompt = llm_service.build_system_prompt(
+        staff_name=staff.name,
+        role=staff.role,
+        personality=staff.personality,
+        expertise=staff.expertise,
+        company_context=knowledge_context,
+        meeting_context=meeting_context,
+        company_name=company.name if company else "MyVCO",
+        company_description=company.description if company else "",
+        db=db
+    )
+    
+    async def generate_response():
+        response_parts = []
+        async for chunk in llm_service.generate_stream(
+            prompt=message.content,
+            system_prompt=system_prompt,
+            provider=p_llm_provider,
+            model=p_llm_model,
+            image_paths=image_paths
+        ):
+            response_parts.append(chunk)
+            yield chunk
+        
+        full_response = "".join(response_parts)
+        
+        from ..database import SessionLocal
+        with SessionLocal() as new_db:
+            staff_message = MeetingMessage(
+                meeting_id=meeting_id, staff_id=staff_id, sender_type="staff",
+                sender_name=staff.name, content=full_response
+            )
+            new_db.add(staff_message)
+            new_db.commit()
+    
+    return StreamingResponse(generate_response(), media_type="text/plain")
+
 @router.put("/{meeting_id}/status")
 async def update_meeting_status(
     meeting_id: int, 

@@ -94,6 +94,21 @@ export const useMeetingStore = create((set) => ({
     }
   },
 
+  resendMessage: async (messageId, staffId, meetingId) => {
+    set({ loading: true });
+    try {
+      const response = await meetingsApi.resendMessage(messageId, staffId);
+      // The response is a stream, caller will handle it
+      // After resend completes, refresh the meeting to get updated messages
+      await useMeetingStore.getState().selectMeeting(meetingId);
+      set({ loading: false });
+      return response;
+    } catch (error) {
+      set({ error: error.message, loading: false });
+      throw error;
+    }
+  },
+
   // Updated to accept config object
   endMeeting: async (meetingId, llmConfig = {}) => {
     set({ loading: true, error: null });
