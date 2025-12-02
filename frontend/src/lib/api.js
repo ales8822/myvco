@@ -49,6 +49,7 @@ export const meetingsApi = {
   getMessages: (id) => api.get(`/meetings/${id}/messages`),
   sendMessage: (meetingId, staffId, data) =>
     api.post(`/meetings/${meetingId}/messages?staff_id=${staffId}`, data),
+  updateMessage: (messageId, data) => api.put(`/meetings/messages/${messageId}`, data),
   askAll: (meetingId, data) => api.post(`/meetings/${meetingId}/ask-all`, data),
   updateStatus: (id, data) => api.put(`/meetings/${id}/status`, data),
   uploadImage: (meetingId, data) =>

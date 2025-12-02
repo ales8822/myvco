@@ -160,6 +160,10 @@ class SendMessageRequest(BaseModel):
     image_data: Optional[str] = None
 
 
+class UpdateMessageRequest(BaseModel):
+    content: str
+
+
 class SendMessageToAllRequest(BaseModel):
     content: str
     sender_name: str = "User"

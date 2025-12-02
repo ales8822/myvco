@@ -266,6 +266,22 @@ async def send_message(
     
     return StreamingResponse(generate_response(), media_type="text/plain")
 
+@router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)
+def update_message(
+    message_id: int,
+    message_update: schemas.UpdateMessageRequest,
+    db: Session = Depends(get_db)
+):
+    """Update a message content"""
+    message = db.query(MeetingMessage).filter(MeetingMessage.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    message.content = message_update.content
+    db.commit()
+    db.refresh(message)
+    return message
+
 @router.put("/{meeting_id}/status")
 async def update_meeting_status(
     meeting_id: int, 

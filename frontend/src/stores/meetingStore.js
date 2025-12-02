@@ -80,6 +80,20 @@ export const useMeetingStore = create((set) => ({
     }));
   },
 
+  editMessage: async (messageId, content) => {
+    try {
+      await meetingsApi.updateMessage(messageId, { content });
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.id === messageId ? { ...m, content } : m
+        ),
+      }));
+    } catch (error) {
+      console.error("Failed to update message:", error);
+      throw error;
+    }
+  },
+
   // Updated to accept config object
   endMeeting: async (meetingId, llmConfig = {}) => {
     set({ loading: true, error: null });
@@ -102,4 +116,3 @@ export const useMeetingStore = create((set) => ({
     }
   },
 }));
-
