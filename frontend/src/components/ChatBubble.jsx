@@ -14,8 +14,8 @@ export default function ChatBubble({ message, participantInfo }) {
             )}
 
             <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
-                    ? 'bg-primary-600 text-white rounded-tr-none'
-                    : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
+                ? 'bg-primary-600 text-white rounded-tr-none'
+                : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
                 }`}>
                 <div className="text-xs opacity-70 mb-1 flex justify-between gap-4">
                     <div className="flex flex-col gap-0.5">
@@ -67,13 +67,23 @@ export default function ChatBubble({ message, participantInfo }) {
                             ),
                             code: ({ node, inline, className, children, ...props }) => {
                                 if (inline) {
-                                    return <code className={`px-1 py-0.5 rounded text-sm ${isUser ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-800'}`} {...props}>{children}</code>
+                                    return <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${isUser ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-800 border border-gray-200'}`} {...props}>{children}</code>
                                 }
                                 return (
-                                    <div className="overflow-x-auto my-2 rounded-md">
-                                        <code className="block bg-gray-900 text-gray-100 p-3 text-sm font-mono" {...props}>
-                                            {children}
-                                        </code>
+                                    <div className="overflow-hidden my-3 rounded-lg border border-gray-700 shadow-sm">
+                                        <div className="bg-gray-800 px-4 py-2 flex items-center justify-between border-b border-gray-700">
+                                            <div className="flex gap-1.5">
+                                                <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                                                <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                                                <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                                            </div>
+                                            <span className="text-xs text-gray-400 font-mono">code</span>
+                                        </div>
+                                        <div className="overflow-x-auto bg-[#1e1e1e]">
+                                            <code className="block text-gray-100 p-4 text-sm font-mono leading-relaxed" {...props}>
+                                                {children}
+                                            </code>
+                                        </div>
                                     </div>
                                 )
                             },

@@ -392,21 +392,59 @@ export default function MeetingRoom() {
     };
 
     const handleKeyDown = (e) => {
-        if (!showMentionDropdown || filteredMentions.length === 0) return;
+        if (showMentionDropdown && filteredMentions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedMentionIndex(prev => (prev + 1) % filteredMentions.length);
+                return;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedMentionIndex(prev => (prev - 1 + filteredMentions.length) % filteredMentions.length);
+                return;
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                selectMention(filteredMentions[selectedMentionIndex]);
+                return;
+            } else if (e.key === 'Escape') {
+                setShowMentionDropdown(false);
+                return;
+            }
+        }
 
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            setSelectedMentionIndex(prev => (prev + 1) % filteredMentions.length);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setSelectedMentionIndex(prev => (prev - 1 + filteredMentions.length) % filteredMentions.length);
-        } else if (e.key === 'Enter' || e.key === 'Tab') {
-            e.preventDefault();
-            selectMention(filteredMentions[selectedMentionIndex]);
-        } else if (e.key === 'Escape') {
-            setShowMentionDropdown(false);
+            handleSendMessage(e);
         }
     };
+
+    const insertCodeBlock = () => {
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = inputMessage;
+        const before = text.substring(0, start);
+        const after = text.substring(end);
+
+        const newText = `${before}\`\`\`\n\n\`\`\`${after}`;
+        setInputMessage(newText);
+
+        // Set cursor position inside the code block
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + 4; // Position after ```\n
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+        }
+    }, [inputMessage]);
 
     const selectMention = (mention) => {
         const textBeforeAt = inputMessage.slice(0, mentionCursorIndex);
@@ -522,7 +560,7 @@ export default function MeetingRoom() {
                                                 {participantStaff.map((member) => <option key={member.id} value={member.id}>{member.name} - {member.role}</option>)}
                                             </select>
                                         </div>
-                                        <div className="flex gap-3 relative">
+                                        <div className="flex gap-3 relative items-end">
                                             {/* Autocomplete Dropdown */}
                                             {showMentionDropdown && filteredMentions.length > 0 && (
                                                 <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
@@ -548,16 +586,25 @@ export default function MeetingRoom() {
                                                 </div>
                                             )}
 
-                                            <input
+                                            <textarea
                                                 ref={inputRef}
-                                                type="text"
-                                                className="input flex-1"
+                                                className="input flex-1 min-h-[44px] max-h-48 py-2 resize-none overflow-y-auto"
                                                 value={inputMessage}
                                                 onChange={handleInputChange}
                                                 onKeyDown={handleKeyDown}
-                                                placeholder="Type your message... Use @imgN to refer to images"
+                                                placeholder="Type your message... Shift+Enter for new line"
                                                 disabled={isStreaming}
+                                                rows={1}
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={insertCodeBlock}
+                                                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 border border-gray-200 font-mono text-sm font-bold"
+                                                disabled={isStreaming}
+                                                title="Insert Code Block"
+                                            >
+                                                &lt;/&gt;
+                                            </button>
                                             <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
                                             <button type="submit" className="btn-primary" disabled={isStreaming || !selectedStaffId}>{isStreaming ? 'Sending...' : 'Send'}</button>
                                             <button type="button" onClick={handleAskAll} className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700" disabled={isStreaming || participantStaff.length === 0}>Ask All</button>
