@@ -9,10 +9,16 @@
 │
 └── frontend/         # React frontend
     ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   ├── stores/   # Zustand state management
-    │   └── lib/      # API client
+    │   ├── components/ # Shared components
+    │   ├── features/   # Feature-based modules
+    │   │   ├── dashboard/
+    │   │   ├── knowledge/
+    │   │   ├── library/
+    │   │   ├── meeting/
+    │   │   └── staff/
+    │   ├── pages/      # Route components
+    │   ├── stores/     # Zustand state management
+    │   └── lib/        # API client
     └── package.json
 ```
 
