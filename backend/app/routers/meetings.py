@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 import os
 import base64
-from .. import schemas
+from ..schemas import meeting as schemas
 from ..database import get_db
 from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department, CompanyAsset
 from ..services.llm_service import llm_service

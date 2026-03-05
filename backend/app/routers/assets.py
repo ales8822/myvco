@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 import os
 import shutil
-from .. import schemas
+from ..schemas import image as schemas
 from ..database import get_db
 from ..models import Company, CompanyAsset
 

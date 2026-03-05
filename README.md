@@ -1,8 +1,9 @@
-<!-- README.md -->
+```text
 ├── backend/          # FastAPI backend
 │   ├── app/
 │   │   ├── models/   # Database models
 │   │   ├── routers/  # API endpoints
+│   │   ├── schemas/  # Modular Pydantic models
 │   │   ├── services/ # Business logic
 │   │   └── main.py   # Application entry
 │   └── requirements.txt
@@ -15,6 +16,8 @@
     │   │   ├── knowledge/
     │   │   ├── library/
     │   │   ├── meeting/
+    │   │   │   ├── components/
+    │   │   │   └── hooks/ # Optimized chat hooks
     │   │   └── staff/
     │   ├── pages/      # Route components
     │   ├── stores/     # Zustand state management
