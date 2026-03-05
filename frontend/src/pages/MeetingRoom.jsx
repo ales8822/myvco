@@ -62,7 +62,8 @@ export default function MeetingRoom() {
         handleSendMessage,
         handleStopGeneration,
         handleResendMessage,
-        handleAskAll
+        handleAskAll,
+        handleAutonomousSession
     } = useMeetingChat(meetingId, currentMeeting, setImagesRefreshTrigger);
 
     const { messagesEndRef, chatContainerRef } = useMeetingScroll(messages, thinkingStaff);
@@ -184,6 +185,7 @@ export default function MeetingRoom() {
                                 handleSendMessage={handleSendMessage}
                                 handleStopGeneration={handleStopGeneration}
                                 handleAskAll={handleAskAll}
+                                handleAutonomousSession={handleAutonomousSession}
                                 handleImageUpload={handleImageUpload}
                                 showMentionDropdown={showMentionDropdown}
                                 filteredMentions={filteredMentions}

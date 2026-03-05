@@ -1,7 +1,7 @@
 // StaffHeader.jsx
 import React from 'react';
 
-export default function StaffHeader({ showFiredStaff, setShowFiredStaff }) {
+export default function StaffHeader({ showFiredStaff, setShowFiredStaff, setShowHireModal }) {
     return (
         <div className="flex justify-between items-center mb-8">
             <div>
@@ -9,6 +9,12 @@ export default function StaffHeader({ showFiredStaff, setShowFiredStaff }) {
                 <p className="text-gray-600">Manage your AI-powered team members</p>
             </div>
             <div className="flex gap-4">
+                <button
+                    onClick={() => setShowHireModal(true)}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                    + Hire Staff
+                </button>
                 <button
                     onClick={() => setShowFiredStaff(!showFiredStaff)}
                     className={`px-4 py-2 rounded-lg transition-colors ${showFiredStaff ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}

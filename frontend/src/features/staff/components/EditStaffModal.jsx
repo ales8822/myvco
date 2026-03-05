@@ -54,7 +54,7 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'system_prompt' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt', true)} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt', true)} libraryItems={libraryItems} />
                         )}
                         <textarea
                             className="input"
@@ -77,7 +77,7 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'personality' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality', true)} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality', true)} libraryItems={libraryItems} />
                         )}
                         <textarea
                             className="input"
@@ -100,7 +100,7 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'expertise' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise', true)} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise', true)} libraryItems={libraryItems} />
                         )}
                         <input
                             type="text"

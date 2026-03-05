@@ -158,6 +158,7 @@ class SendMessageRequest(BaseModel):
     content: str
     sender_name: str = "User"
     image_data: Optional[str] = None
+    target_path: Optional[str] = None  # <--- NEW FIELD
 
 
 class UpdateMessageRequest(BaseModel):

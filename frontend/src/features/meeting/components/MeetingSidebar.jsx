@@ -50,7 +50,7 @@ export default function MeetingSidebar({
                     })}
                 </div>
             </div>
-            {showActionItems && <ActionItemsPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} />}
+            {showActionItems && <ActionItemsPanel meetingId={parseInt(meetingId)} isActive={currentMeeting?.status === 'active'} participants={currentMeeting?.participants || []} />}
         </div>
     );
 }

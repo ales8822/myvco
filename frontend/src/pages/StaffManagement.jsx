@@ -109,7 +109,7 @@ export default function StaffManagement() {
             <Sidebar />
             <div className="ml-64 flex-1 p-8 bg-gray-50 min-h-screen">
                 <div className="max-w-7xl mx-auto">
-                    <StaffHeader showFiredStaff={showFiredStaff} setShowFiredStaff={setShowFiredStaff} />
+                    <StaffHeader showFiredStaff={showFiredStaff} setShowFiredStaff={setShowFiredStaff} setShowHireModal={setShowHireModal} />
                     <StaffList
                         staff={showFiredStaff ? firedStaff : staff}
                         showFiredStaff={showFiredStaff}

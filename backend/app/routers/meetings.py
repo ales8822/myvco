@@ -13,11 +13,28 @@ from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
 from ..services.mention_parser import mention_parser
+import asyncio
+import queue
+import threading
+import autogen
+from ..services.autogen_service import autogen_service
+from services.tools.registry import register_filesystem_tools
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "meeting_images")
+
+
+# Global dictionary to manage stop signals
+autonomous_stop_events = {}
+
+@router.post("/{meeting_id}/autonomous/stop")
+def stop_autonomous_session(meeting_id: int):
+    if meeting_id in autonomous_stop_events:
+        autonomous_stop_events[meeting_id].set()
+        return {"message": "Stop signal sent"}
+    return {"message": "No active session found", "status": "ignored"}
 
 def link_mentioned_assets(db: Session, meeting_id: int, company_id: int, text: str):
     """
@@ -434,6 +451,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 'role': p.staff.role,
                 'personality': p.staff.personality,
                 'expertise': p.staff.expertise,
+                'system_prompt': p.staff.system_prompt,
                 'llm_provider': p.llm_provider,
                 'llm_model': p.llm_model
             })
@@ -467,6 +485,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 meeting_context=meeting_context,
                 company_name=company_name,
                 company_description=company_desc,
+                system_prompt=p_data['system_prompt'], 
                 db=db
             )
             
@@ -605,3 +624,168 @@ def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
     db.delete(meeting)
     db.commit()
     return {"message": "Meeting deleted successfully"}
+
+@router.post("/{meeting_id}/autonomous")
+async def start_autonomous_session(
+    meeting_id: int, 
+    request: schemas.SendMessageRequest, 
+    db: Session = Depends(get_db)
+):
+    """
+    Starts an autonomous AutoGen loop.
+    """
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting or meeting.status != "active":
+        raise HTTPException(status_code=400, detail="Meeting not active")
+
+    # Create Stop Event
+    stop_event = threading.Event()
+    autonomous_stop_events[meeting_id] = stop_event
+
+    msg_queue = queue.Queue()
+    
+    participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
+    if len(participants) < 1:
+        raise HTTPException(status_code=400, detail="Need at least 1 participant")
+
+    # Context
+    company_id = meeting.company_id
+    knowledge_context = memory_service.get_company_knowledge_context(db, company_id)
+    image_context = memory_service.get_current_meeting_image(db, meeting_id)
+
+    agent_list = []
+    agent_map = {} 
+
+    user_proxy = autogen_service.create_user_proxy()
+    
+    for p in participants:
+        staff = p.staff
+        system_prompt = llm_service.build_system_prompt(
+            staff_name=staff.name,
+            role=staff.role,
+            personality=staff.personality,
+            expertise=staff.expertise,
+            company_context=knowledge_context,
+            meeting_context=image_context,
+            system_prompt=staff.system_prompt,
+            db=db
+        )
+        
+        agent = autogen_service.create_agent(
+            staff_name=staff.name,
+            system_prompt=system_prompt,
+            provider=p.llm_provider,
+            model=p.llm_model
+        )
+        
+        # Hook to check stop signal on every reply
+        def check_stop(recipient, messages, sender, config):
+            if stop_event.is_set():
+                return True, "TERMINATE" # Force termination
+            return False, None
+            
+        agent.register_reply([autogen.Agent, None], check_stop, position=0)
+
+        agent_list.append(agent)
+        agent_map[agent.name] = staff.id
+
+    # Register Tools if Path provided
+    if request.target_path:
+        if os.path.exists(request.target_path):
+            print(f"DEBUG: Registering Tools for {request.target_path}")
+            register_filesystem_tools(user_proxy, agent_list, request.target_path)
+            tool_msg = "\n\n[SYSTEM]: You have FILE SYSTEM ACCESS. Use tools 'list_files', 'read_file', 'write_file'. Always list/read before writing."
+            for ag in agent_list:
+                ag.update_system_message(ag.system_message + tool_msg)
+        else:
+            msg_queue.put({"type": "agent", "sender": "System", "content": f"Warning: Path {request.target_path} not found."})
+
+    # Message Capture
+    class SpyList(list):
+        def append(self, item):
+            super().append(item)
+            if isinstance(item, dict):
+                sender = item.get("name", "Unknown")
+                content = item.get("content", "")
+                if sender != user_proxy.name and content and content.strip() and content != "TERMINATE":
+                    msg_queue.put({"sender": sender, "content": content, "type": "agent"})
+
+    # Run Loop
+    def run_autogen_loop():
+        try:
+            # 1-on-1 Mode
+            if len(agent_list) == 1:
+                print("DEBUG: Starting 1-on-1 Chat")
+                user_proxy.initiate_chat(
+                    agent_list[0],
+                    message=request.content
+                )
+            # Group Mode
+            else:
+                print("DEBUG: Starting Group Chat")
+                groupchat = autogen.GroupChat(
+                    agents=[user_proxy] + agent_list, 
+                    messages=SpyList(),
+                    max_round=12
+                )
+                # Determine Manager LLM (Prefer Gemini, fallback Ollama)
+                from ..config import settings
+                if settings.gemini_api_key:
+                     mgr_config = autogen_service._get_llm_config("gemini", "gemini-2.0-flash")
+                elif settings.ollama_base_url:
+                     def_model = participants[0].llm_model or "llama3"
+                     mgr_config = autogen_service._get_llm_config("ollama", def_model)
+                
+                manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=mgr_config)
+                user_proxy.initiate_chat(manager, message=request.content)
+
+        except Exception as e:
+            print(f"AutoGen Error: {e}")
+            msg_queue.put({"type": "error", "content": str(e)})
+        finally:
+            msg_queue.put({"type": "done"})
+            if meeting_id in autonomous_stop_events:
+                del autonomous_stop_events[meeting_id]
+
+    thread = threading.Thread(target=run_autogen_loop)
+    thread.start()
+
+    # Streamer
+    async def response_generator():
+        # Save trigger
+        from ..database import SessionLocal
+        with SessionLocal() as local_db:
+            user_msg = MeetingMessage(
+                meeting_id=meeting_id, sender_type="user", sender_name="User (Autonomous)", content=request.content
+            )
+            local_db.add(user_msg)
+            local_db.commit()
+
+        while True:
+            try:
+                data = await asyncio.to_thread(msg_queue.get)
+                if data["type"] == "done": break
+                if data["type"] == "error": 
+                    yield f"ERROR: {data['content']}\n"
+                    break
+                
+                if data["type"] == "agent":
+                    sender = data["sender"]
+                    if "chat_manager" in sender: continue
+                    
+                    yield f"---STAFF:{sender}---\n{data['content']}\n"
+                    
+                    # Save
+                    staff_id = agent_map.get(sender)
+                    if staff_id:
+                        with SessionLocal() as local_db:
+                             db_msg = MeetingMessage(
+                                meeting_id=meeting_id, staff_id=staff_id, 
+                                sender_type="staff", sender_name=sender, content=data['content']
+                             )
+                             local_db.add(db_msg)
+                             local_db.commit()
+            except Exception as e:
+                break
+
+    return StreamingResponse(response_generator(), media_type="text/plain")

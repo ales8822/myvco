@@ -1,6 +1,7 @@
-import { useRef, useEffect } from 'react';
-import { Square } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { Square, FolderCode, Folder, HardDrive } from 'lucide-react';
 import ImageUpload from '../../../components/ImageUpload';
+import { systemApi } from '../../../lib/api';
 
 export default function MeetingInput({
     inputMessage,
@@ -14,8 +15,9 @@ export default function MeetingInput({
     handleSendMessage,
     handleStopGeneration,
     handleAskAll,
+    handleAutonomousSession,
+    handleStopAutonomous,
     handleImageUpload,
-    // Mentions props
     showMentionDropdown,
     filteredMentions,
     selectedMentionIndex,
@@ -24,6 +26,14 @@ export default function MeetingInput({
     selectMention
 }) {
     const inputRef = useRef(null);
+    const [targetPath, setTargetPath] = useState('');
+    const [showPathInput, setShowPathInput] = useState(false);
+    
+    // Browser State - ENSURE THESE ARE PRESENT
+    const [showBrowser, setShowBrowser] = useState(false);
+    const [currentPath, setCurrentPath] = useState('');
+    const [directories, setDirectories] = useState([]);
+    const [drives, setDrives] = useState([]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -46,26 +56,15 @@ export default function MeetingInput({
         const newText = `${before}\`\`\`\n\n\`\`\`${after}`;
         setInputMessage(newText);
 
-        // Set cursor position inside the code block
         setTimeout(() => {
             textarea.focus();
-            const newCursorPos = start + 4; // Position after ```\n
+            const newCursorPos = start + 4; 
             textarea.setSelectionRange(newCursorPos, newCursorPos);
         }, 0);
     };
 
     const onKeyDown = (e) => {
-        // Handle mention navigation first
         if (handleMentionKeyDown(e, (mention) => {
-            // Need to calculate cursor position for replacement
-            // This logic was inside selectMention in original file
-            // We'll assume the parent component handles the actual text replacement logic
-            // But wait, selectMention needs the inputRef to set cursor position.
-            // Let's pass the ref or handle it here.
-
-            // Actually, let's keep the selectMention logic in the parent or hook, 
-            // but we need the inputRef there. 
-            // Alternatively, we pass a callback that takes the mention and the inputRef.
             selectMention(mention, inputRef);
         })) return;
 
@@ -77,6 +76,32 @@ export default function MeetingInput({
 
     const onInputChange = (e) => {
         handleMentionInput(e, inputMessage, setInputMessage);
+    };
+
+    // --- FOLDER BROWSER LOGIC ---
+    const openBrowser = async () => {
+        setShowBrowser(true);
+        try {
+            const drv = await systemApi.getDrives();
+            setDrives(drv.data.drives);
+            // Load current path or default
+            loadDirectory(targetPath || ''); 
+        } catch (e) { console.error(e); }
+    };
+
+    const loadDirectory = async (path) => {
+        try {
+            const res = await systemApi.browse(path);
+            setCurrentPath(res.data.current_path);
+            setDirectories(res.data.directories);
+        } catch (error) {
+            console.error("Failed to browse", error);
+        }
+    };
+
+    const handleSelectFolder = () => {
+        setTargetPath(currentPath);
+        setShowBrowser(false);
     };
 
     return (
@@ -131,6 +156,7 @@ export default function MeetingInput({
                             disabled={isStreaming}
                             rows={1}
                         />
+                        
                         <button
                             type="button"
                             onClick={insertCodeBlock}
@@ -140,8 +166,10 @@ export default function MeetingInput({
                         >
                             &lt;/&gt;
                         </button>
+                        
                         <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
-                        {isStreaming ? (
+                        
+                        {isStreaming && !showPathInput ? (
                             <button
                                 type="button"
                                 onClick={handleStopGeneration}
@@ -152,9 +180,112 @@ export default function MeetingInput({
                                 Stop
                             </button>
                         ) : (
-                            <button type="submit" className="btn-primary" disabled={!selectedStaffId}>Send</button>
+                            <button type="submit" className="btn-primary" disabled={!selectedStaffId || isStreaming}>Send</button>
                         )}
+                        
                         <button type="button" onClick={handleAskAll} className="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700" disabled={isStreaming || participantStaff.length === 0}>Ask All</button>
+
+                        {/* Autonomous / File System Group */}
+                        <div className="flex items-center relative">
+                            {showPathInput && (
+                                <div className="absolute bottom-full right-0 mb-2 bg-white p-3 rounded-lg shadow-xl border border-gray-200 flex flex-col gap-2 w-72 animate-in fade-in slide-in-from-bottom-2 z-50">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs font-semibold text-gray-700">Target Project Path:</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={openBrowser}
+                                            className="text-[10px] bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-blue-600 flex items-center gap-1"
+                                        >
+                                            <Folder size={10} /> Browse
+                                        </button>
+                                    </div>
+                                    <input 
+                                        type="text"
+                                        className="input text-xs py-1 px-2"
+                                        placeholder="C:\Projects\MyApp..."
+                                        value={targetPath}
+                                        onChange={(e) => setTargetPath(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <div className="text-[10px] text-gray-400">⚠️ Agents will have R/W access here.</div>
+                                    
+                                    {/* Standard Stop Button - REPLACES Send button when streaming */}
+                                    {isStreaming ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleStopAutonomous} // Use new stop handler
+                                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                                            title="Stop Autonomous Session"
+                                        >
+                                            <Square size={16} fill="currentColor" />
+                                            Stop
+                                        </button>
+                                    ) : (
+                                        <button type="submit" className="btn-primary" disabled={!selectedStaffId}>Send</button>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {/* Folder Browser Modal */}
+                            {showBrowser && (
+                                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center">
+                                    <div className="bg-white rounded-lg w-96 max-h-[80vh] flex flex-col shadow-2xl">
+                                        <div className="p-3 border-b border-gray-200 font-bold bg-gray-50 flex justify-between items-center">
+                                            <span>Select Folder</span>
+                                            <button onClick={() => setShowBrowser(false)} className="text-gray-500">✕</button>
+                                        </div>
+                                        <div className="p-2 bg-gray-100 text-xs font-mono break-all border-b border-gray-200">
+                                            {currentPath}
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-2">
+                                            <div className="mb-2 flex flex-wrap gap-2">
+                                                {drives.map(d => (
+                                                    <button key={d} onClick={() => loadDirectory(d)} className="px-2 py-1 bg-gray-200 text-xs rounded hover:bg-gray-300 flex items-center gap-1">
+                                                        <HardDrive size={12} /> {d}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <button onClick={() => loadDirectory(currentPath + '/..')} className="w-full text-left px-2 py-1.5 hover:bg-blue-50 rounded text-sm text-blue-600 mb-1">
+                                                📁 .. (Up)
+                                            </button>
+                                            {directories.map(dir => (
+                                                <button 
+                                                    key={dir} 
+                                                    onClick={() => loadDirectory(currentPath + (currentPath.endsWith(window.navigator.platform.includes("Win") ? "\\" : "/") ? "" : (window.navigator.platform.includes("Win") ? "\\" : "/")) + dir)}
+                                                    className="w-full text-left px-2 py-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-2"
+                                                >
+                                                    <Folder size={14} className="text-yellow-500" /> {dir}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="p-3 border-t border-gray-200 flex justify-end gap-2">
+                                            <button onClick={() => setShowBrowser(false)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                            <button onClick={handleSelectFolder} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Select Current</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button 
+                                type="button" 
+                                onClick={(e) => {
+                                    if (!showPathInput && !e.shiftKey) {
+                                        setShowPathInput(true);
+                                    } else {
+                                        if (!isStreaming) {
+                                            handleAutonomousSession(targetPath); 
+                                            setShowPathInput(false);
+                                        }
+                                    }
+                                }} 
+                                className={`px-4 py-2 text-white rounded-lg flex items-center gap-1 transition-colors ${showPathInput ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                                disabled={participantStaff.length < 1}
+                                title="Start Autonomous Round Table. Click to set path."
+                            >
+                                {showPathInput ? <span>🚀 GO</span> : <><FolderCode size={16} /> Auto</>}
+                            </button>
+                        </div>
+
                     </div>
                 </form>
             )}

@@ -19,7 +19,6 @@ class LLMService:
     
     async def get_ollama_models(self) -> List[str]:
         """Fetch available models from Ollama RunPod instance"""
-        # Debug: Print what URL we are trying to use
         print(f"DEBUG: Checking Ollama connection at: {settings.ollama_base_url}")
         
         if not settings.ollama_base_url:
@@ -82,7 +81,6 @@ class LLMService:
             full_prompt = f"{system_prompt}\n\nUser: {prompt}"
             content = []
             
-            # Load all images if provided
             if image_paths:
                 import PIL.Image
                 for img_path in image_paths:
@@ -124,7 +122,6 @@ class LLMService:
             return
         
         try:
-            # Increase timeout for cold starts (e.g. model loading)
             async with httpx.AsyncClient(timeout=120.0) as client:
                 payload = {
                     "model": model or "llama2",
@@ -134,7 +131,6 @@ class LLMService:
                     "options": {"temperature": temperature}
                 }
 
-                # Encode all images if provided
                 if image_paths:
                     encoded_images = []
                     for img_path in image_paths:
@@ -154,8 +150,6 @@ class LLMService:
                 print(f"DEBUG: Connecting to Ollama at {target_url} with model {payload['model']}")
 
                 async with client.stream("POST", target_url, json=payload) as response:
-                    
-                    # Check for HTTP errors (e.g., 404 Model Not Found, 500 Internal Error)
                     if response.status_code != 200:
                         error_content = await response.read()
                         error_msg = f"Ollama HTTP Error {response.status_code}: {error_content.decode('utf-8')}"
@@ -167,24 +161,19 @@ class LLMService:
                         if line:
                             try:
                                 data = json.loads(line)
-                                
                                 if "error" in data:
                                     error_msg = f"Ollama API Error: {data['error']}"
                                     print(f"ERROR: {error_msg}")
                                     yield error_msg
                                     return
-                                
                                 if "response" in data:
                                     yield data["response"]
-                                    
                             except json.JSONDecodeError:
                                 continue
                                 
         except Exception as e:
-            # Log full traceback to backend terminal for easier debugging
             print("ERROR: Exception in _generate_ollama_stream:")
             traceback.print_exc()
-            # Return detailed error to UI
             yield f"Error generating Ollama response: {repr(e)}"
 
     def resolve_dependencies(self, text: str, db: Session) -> str:
@@ -194,34 +183,43 @@ class LLMService:
         if not text or not db:
             return text
             
-        # Find all matches of @tag_name
-        # \w+ matches alphanumeric + underscore
         matches = re.findall(r'@(\w+)', text)
         
         if not matches:
             return text
             
-        # Avoid circular imports
         from ..models import LibraryItem
         
         resolved_text = text
         for slug in matches:
             item = db.query(LibraryItem).filter(LibraryItem.slug == slug).first()
             if item:
-                # Replace @slug with content
-                # We use word boundary to ensure we don't replace @super_coder when looking for @super
                 pattern = f"@{slug}\\b"
                 resolved_text = re.sub(pattern, f"\\n[Start of {item.name}]\\n{item.content}\\n[End of {item.name}]\\n", resolved_text)
         
         return resolved_text
 
-    def build_system_prompt(self, staff_name, role, personality, expertise, company_context, meeting_context, company_name="MyVCO", company_description="", db: Session = None):
-        # Resolve dependencies in personality and expertise
+    def build_system_prompt(
+        self, 
+        staff_name, 
+        role, 
+        personality, 
+        expertise, 
+        company_context, 
+        meeting_context, 
+        company_name="MyVCO", 
+        company_description="", 
+        system_prompt="", # NEW: Added personal instructions param
+        db: Session = None
+    ):
+        # Resolve dependencies in personality, expertise, and personal instructions
         if db:
             if personality:
                 personality = self.resolve_dependencies(personality, db)
             
-            # Expertise is a list, join it first or handle list
+            if system_prompt: # Resolve dependencies in instructions
+                system_prompt = self.resolve_dependencies(system_prompt, db)
+            
             if isinstance(expertise, list):
                 expertise_str = ", ".join(expertise)
                 expertise_str = self.resolve_dependencies(expertise_str, db)
@@ -235,6 +233,8 @@ class LLMService:
             f"{company_description}\\n" if company_description else "",
             f"Your Personality: {personality}",
             f"Your Expertise: {expertise_str}\\n",
+            "Personal Instructions:", # Add Header for Personal Instructions
+            f"{system_prompt}\\n" if system_prompt else "",
             "Company Knowledge:",
             f"{company_context}\\n" if company_context else "No specific context available.\\n",
             "Meeting Context:",

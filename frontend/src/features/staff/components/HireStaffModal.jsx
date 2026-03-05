@@ -55,7 +55,7 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'system_prompt' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt')} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt')} libraryItems={libraryItems} />
                         )}
                         <textarea
                             className="input"
@@ -78,7 +78,7 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'personality' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality')} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality')} libraryItems={libraryItems} />
                         )}
                         <textarea
                             className="input"
@@ -101,7 +101,7 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'expertise' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise')} />
+                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise')} libraryItems={libraryItems} />
                         )}
                         <input
                             type="text"
