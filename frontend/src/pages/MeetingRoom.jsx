@@ -63,7 +63,9 @@ export default function MeetingRoom() {
         handleStopGeneration,
         handleResendMessage,
         handleAskAll,
-        handleAutonomousSession
+        handleAutonomousSession,
+        fetchPromptPreview,
+        handleSendPreviewedMessage
     } = useMeetingChat(meetingId, currentMeeting, setImagesRefreshTrigger);
 
     const { messagesEndRef, chatContainerRef } = useMeetingScroll(messages, thinkingStaff);
@@ -193,6 +195,8 @@ export default function MeetingRoom() {
                                 handleMentionInput={handleMentionInput}
                                 handleMentionKeyDown={handleMentionKeyDown}
                                 selectMention={selectMention}
+                                fetchPromptPreview={fetchPromptPreview}
+                                handleSendPreviewedMessage={handleSendPreviewedMessage}
                             />
                         )}
                     </div>

@@ -258,10 +258,16 @@ async def send_message(
         db=db
     )
     
+    # Apply explicit overrides if provided
+    if message.custom_system_prompt is not None:
+        system_prompt = message.custom_system_prompt
+    
+    final_prompt = message.custom_user_content if message.custom_user_content is not None else message.content
+    
     async def generate_response():
         response_parts = []
         async for chunk in llm_service.generate_stream(
-            prompt=message.content, 
+            prompt=final_prompt, 
             system_prompt=system_prompt, 
             provider=p_llm_provider, 
             model=p_llm_model,       
@@ -282,6 +288,49 @@ async def send_message(
             new_db.commit()
     
     return StreamingResponse(generate_response(), media_type="text/plain")
+
+@router.post("/{meeting_id}/messages/preview")
+async def preview_prompt(
+    meeting_id: int, 
+    message: schemas.SendMessageRequest, 
+    staff_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Generate the system prompt and user message preview without sending them to the LLM"""
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting or meeting.status != "active":
+        raise HTTPException(status_code=400, detail="Meeting not active")
+    
+    participant = db.query(MeetingParticipant).filter(
+        MeetingParticipant.meeting_id == meeting_id,
+        MeetingParticipant.staff_id == staff_id
+    ).first()
+    
+    if not participant:
+        raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
+        
+    staff = participant.staff
+    
+    meeting_context = memory_service.get_meeting_context(db, meeting_id)
+    knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
+    company = db.query(Company).filter(Company.id == meeting.company_id).first()
+    
+    system_prompt = llm_service.build_system_prompt(
+        staff_name=staff.name,
+        role=staff.role,
+        personality=staff.personality,
+        expertise=staff.expertise,
+        company_context=knowledge_context,
+        meeting_context=meeting_context,
+        company_name=company.name if company else "MyVCO",
+        company_description=company.description if company else "",
+        db=db
+    )
+    
+    return {
+        "system_prompt": system_prompt,
+        "user_content": message.content
+    }
 
 @router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)
 def update_message(
@@ -368,6 +417,9 @@ async def resend_message(
         db=db
     )
     
+    # No custom overrides implemented in resend for now (can be passed via schema if updated, but keeping it simple)
+    # If we wanted to allow overrides in resend, we'd add custom_system_prompt as query param or body. We will leave it standard.
+
     async def generate_response():
         response_parts = []
         async for chunk in llm_service.generate_stream(
@@ -489,6 +541,12 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 db=db
             )
             
+            # Allow overrides
+            if message.custom_system_prompt is not None:
+                system_prompt = message.custom_system_prompt
+                
+            final_prompt = message.custom_user_content if message.custom_user_content is not None else message.content
+            
             # Send the staff delimiter first
             yield f"---STAFF:{p_data['name']}---\n"
             
@@ -496,7 +554,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
             
             # FIX: Explicitly iterate over the inner generator and yield its chunks
             async for chunk in llm_service.generate_stream(
-                prompt=message.content, 
+                prompt=final_prompt, 
                 system_prompt=system_prompt, 
                 provider=p_data['llm_provider'],
                 model=p_data['llm_model'],

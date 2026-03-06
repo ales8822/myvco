@@ -86,7 +86,7 @@ export function useChatActions(meetingId, setIsStreaming, setImagesRefreshTrigge
         }
     };
 
-    const askAll = async (inputMessage, currentMeeting) => {
+    const askAll = async (inputMessage, currentMeeting, systemPromptOverride = null, userContentOverride = null) => {
         if (!inputMessage.trim()) return;
 
         const userMessage = {
@@ -113,15 +113,19 @@ export function useChatActions(meetingId, setIsStreaming, setImagesRefreshTrigge
         const fetchStaffResponse = async (member, index) => {
             try {
                 const saveUserMsg = index === 0;
+                const bodyPayload = {
+                    content: messageToSend,
+                    sender_name: "User",
+                };
+                if (systemPromptOverride) bodyPayload.custom_system_prompt = systemPromptOverride;
+                if (userContentOverride) bodyPayload.custom_user_content = userContentOverride;
+
                 const response = await fetch(
                     `/api/meetings/${meetingId}/messages?staff_id=${member.id}&save_user_message=${saveUserMsg}`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            content: messageToSend,
-                            sender_name: "User",
-                        }),
+                        body: JSON.stringify(bodyPayload),
                     }
                 );
 

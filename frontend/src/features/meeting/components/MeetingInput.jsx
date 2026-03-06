@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
-import { Square, FolderCode, Folder, HardDrive } from 'lucide-react';
+import { Square, FolderCode, Folder, HardDrive, Eye } from 'lucide-react';
 import ImageUpload from '../../../components/ImageUpload';
 import { systemApi } from '../../../lib/api';
+import PromptPreviewModal from './PromptPreviewModal';
 
 export default function MeetingInput({
     inputMessage,
@@ -23,7 +24,9 @@ export default function MeetingInput({
     selectedMentionIndex,
     handleMentionInput,
     handleMentionKeyDown,
-    selectMention
+    selectMention,
+    fetchPromptPreview,
+    handleSendPreviewedMessage
 }) {
     const inputRef = useRef(null);
     const [targetPath, setTargetPath] = useState('');
@@ -34,6 +37,11 @@ export default function MeetingInput({
     const [currentPath, setCurrentPath] = useState('');
     const [directories, setDirectories] = useState([]);
     const [drives, setDrives] = useState([]);
+
+    // Prompt Preview State
+    const [isPromptPreviewOpen, setIsPromptPreviewOpen] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
+    const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -104,6 +112,21 @@ export default function MeetingInput({
         setShowBrowser(false);
     };
 
+    const handlePreviewClick = async () => {
+        if (!inputMessage.trim() || !selectedStaffId || isStreaming) return;
+        setIsFetchingPreview(true);
+        const data = await fetchPromptPreview();
+        setIsFetchingPreview(false);
+        if (data) {
+            setPreviewData(data);
+            setIsPromptPreviewOpen(true);
+        }
+    };
+
+    const handlePreviewSend = async ({ systemPrompt, userContent }) => {
+        await handleSendPreviewedMessage(systemPrompt, userContent);
+    };
+
     return (
         <div className="bg-white border-t border-gray-200 p-6 relative">
             {showImageUpload ? (
@@ -168,6 +191,20 @@ export default function MeetingInput({
                         </button>
                         
                         <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
+                        
+                        <button 
+                            type="button" 
+                            onClick={handlePreviewClick} 
+                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 flex items-center justify-center relative group" 
+                            disabled={isStreaming || !inputMessage.trim() || !selectedStaffId || isFetchingPreview}
+                            title="Preview Prompt"
+                        >
+                            {isFetchingPreview ? (
+                                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <Eye size={20} />
+                            )}
+                        </button>
                         
                         {isStreaming && !showPathInput ? (
                             <button
@@ -289,6 +326,14 @@ export default function MeetingInput({
                     </div>
                 </form>
             )}
+            
+            <PromptPreviewModal
+                isOpen={isPromptPreviewOpen}
+                onClose={() => setIsPromptPreviewOpen(false)}
+                previewData={previewData}
+                onSend={handlePreviewSend}
+                isStreaming={isStreaming}
+            />
         </div>
     );
 }

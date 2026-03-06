@@ -58,6 +58,8 @@ class SendMessageRequest(BaseModel):
     sender_name: str = "User"
     image_data: Optional[str] = None
     target_path: Optional[str] = None
+    custom_system_prompt: Optional[str] = None
+    custom_user_content: Optional[str] = None
 
 class UpdateMessageRequest(BaseModel):
     content: str
@@ -66,6 +68,12 @@ class SendMessageToAllRequest(BaseModel):
     content: str
     sender_name: str = "User"
     image_data: Optional[str] = None
+    custom_system_prompt: Optional[str] = None
+    custom_user_content: Optional[str] = None
+
+class PromptPreviewResponse(BaseModel):
+    system_prompt: str
+    user_content: str
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str

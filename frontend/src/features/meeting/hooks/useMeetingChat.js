@@ -40,6 +40,28 @@ export function useMeetingChat(
     await streamMessage(message, selectedStaffId);
   };
 
+  const fetchPromptPreview = async () => {
+    if (!inputMessage.trim() || !selectedStaffId) return null;
+    try {
+      const response = await fetch(`/api/meetings/${meetingId}/messages/preview?staff_id=${selectedStaffId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: inputMessage, sender_name: "User" }),
+      });
+      if (!response.ok) throw new Error("Failed to fetch preview");
+      return await response.json();
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  const handleSendPreviewedMessage = async (sysPromptOverride, userContentOverride) => {
+    if (!userContentOverride.trim() || !selectedStaffId) return;
+    setInputMessage("");
+    await streamMessage(userContentOverride, selectedStaffId, sysPromptOverride, userContentOverride);
+  };
+
   const handleStopGeneration = () => {
     stopStreaming();
   };
@@ -93,5 +115,7 @@ export function useMeetingChat(
     handleAskAll,
     handleAutonomousSession,
     handleStopAutonomous,
+    fetchPromptPreview,
+    handleSendPreviewedMessage,
   };
 }

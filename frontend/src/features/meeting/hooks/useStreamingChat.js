@@ -8,7 +8,7 @@ export function useStreamingChat(meetingId, setImagesRefreshTrigger) {
     const [isStreaming, setIsStreaming] = useState(false);
     const abortControllerRef = useRef(null);
 
-    const streamMessage = async (inputMessage, selectedStaffId) => {
+    const streamMessage = async (inputMessage, selectedStaffId, systemPromptOverride = null, userContentOverride = null) => {
         if (!inputMessage.trim() || !selectedStaffId) return;
 
         const userMessage = {
@@ -40,12 +40,16 @@ export function useStreamingChat(meetingId, setImagesRefreshTrigger) {
         abortControllerRef.current = new AbortController();
 
         try {
+            const bodyPayload = { content: inputMessage, sender_name: "User" };
+            if (systemPromptOverride) bodyPayload.custom_system_prompt = systemPromptOverride;
+            if (userContentOverride) bodyPayload.custom_user_content = userContentOverride;
+
             const response = await fetch(
                 `/api/meetings/${meetingId}/messages?staff_id=${selectedStaffId}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: inputMessage, sender_name: "User" }),
+                    body: JSON.stringify(bodyPayload),
                     signal: abortControllerRef.current.signal,
                 }
             );
