@@ -13,6 +13,7 @@ export default function PromptPreviewModal({
     const [userContent, setUserContent] = useState('');
     const [maxTokens, setMaxTokens] = useState(8192);
     const [llmInfo, setLlmInfo] = useState('');
+    const [imageUrls, setImageUrls] = useState([]);
 
     useEffect(() => {
         if (previewData) {
@@ -20,12 +21,14 @@ export default function PromptPreviewModal({
             setUserContent(previewData.user_content || '');
             setMaxTokens(previewData.max_tokens || 8192);
             setLlmInfo(`${previewData.llm_provider || 'gemini'} / ${previewData.llm_model || 'default'}`);
+            setImageUrls(previewData.image_urls || []);
         }
     }, [previewData]);
 
     const systemTokens = estimateTokenCount(systemPrompt);
     const userTokens = estimateTokenCount(userContent);
-    const totalTokens = systemTokens + userTokens;
+    const imageTokens = estimateTokenCount('', imageUrls);
+    const totalTokens = systemTokens + userTokens + imageTokens;
     const isOverLimit = totalTokens > maxTokens;
     
     // Calculate percentage for progress bar (cap at 100%)
@@ -93,6 +96,28 @@ export default function PromptPreviewModal({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Image Attachments Section */}
+                    {imageUrls.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <label className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Attached Assets</label>
+                                <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded font-mono">+{imageTokens} TOKENS</span>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                {imageUrls.map((url, index) => (
+                                    <div key={index} className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm">
+                                        <img 
+                                            src={url} 
+                                            alt={`Attachment ${index + 1}`} 
+                                            className="h-24 w-24 object-cover hover:scale-105 transition-transform duration-300"
+                                            onError={(e) => { e.target.src = 'https://via.placeholder.com/96?text=Asset'; }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* System Prompt Section */}
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">

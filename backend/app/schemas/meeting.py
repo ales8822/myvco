@@ -77,6 +77,7 @@ class PromptPreviewResponse(BaseModel):
     llm_provider: str
     llm_model: Optional[str] = None
     max_tokens: int
+    image_urls: List[str] = []
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str

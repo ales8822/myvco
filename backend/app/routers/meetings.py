@@ -7,9 +7,11 @@ from datetime import datetime
 from pathlib import Path
 import os
 import base64
-from .. import schemas
-from ..database import get_db
-from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department, CompanyAsset
+from ..schemas import meeting as schemas
+from ..schemas.image import MeetingImageCreate
+from ..schemas.action_item import ActionItem as ActionItemSchema, ActionItemCreate
+from ..database import get_db, SessionLocal
+from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department, CompanyAsset, MeetingTemplate
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
 from ..services.mention_parser import mention_parser
@@ -327,6 +329,29 @@ async def preview_prompt(
         db=db
     )
     
+    # 3. Handle mentions (images and assets) for Token Estimation & UI Thumbnail delivery
+    image_paths, missing_mentions = mention_parser.resolve_all_mentions(
+        text=message.content,
+        meeting_id=meeting_id,
+        company_id=meeting.company_id,
+        db=db
+    )
+    
+    # Convert absolute paths to relative web URLs for frontend rendering
+    image_urls = []
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    for path in image_paths:
+        try:
+            # We want to format string: C:/path/to/backend/uploads/... -> /uploads/...
+            rel_path = os.path.relpath(path, base_dir)
+            # Normalize to forward slashes for web usage
+            rel_path = rel_path.replace("\\", "/")
+            if not rel_path.startswith("/"):
+                rel_path = "/" + rel_path
+            image_urls.append(rel_path)
+        except Exception as e:
+            print(f"Warning: Could not resolve relative URL for {path}: {e}")
+    
     provider = participant.llm_provider
     model_name = participant.llm_model or ("gemini-2.0-flash" if provider == "gemini" else "llama3")
     max_tokens = await llm_service.get_max_tokens(provider, model_name, db)
@@ -336,7 +361,8 @@ async def preview_prompt(
         "user_content": message.content,
         "llm_provider": provider,
         "llm_model": model_name,
-        "max_tokens": max_tokens
+        "max_tokens": max_tokens,
+        "image_urls": image_urls
     }
 
 @router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)
@@ -585,7 +611,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
     return StreamingResponse(generate_all_responses(), media_type="text/plain")
 
 @router.post("/{meeting_id}/upload-image")
-async def upload_meeting_image(meeting_id: int, image: schemas.MeetingImageCreate, db: Session = Depends(get_db)):
+async def upload_meeting_image(meeting_id: int, image: MeetingImageCreate, db: Session = Depends(get_db)):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
@@ -645,12 +671,12 @@ def get_meeting_images(meeting_id: int, db: Session = Depends(get_db)):
         "created_at": img.created_at
     } for img in images]
 
-@router.get("/{meeting_id}/action-items", response_model=List[schemas.ActionItem])
+@router.get("/{meeting_id}/action-items", response_model=List[ActionItemSchema])
 def get_action_items(meeting_id: int, db: Session = Depends(get_db)):
     return db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).all()
 
-@router.post("/{meeting_id}/action-items", response_model=schemas.ActionItem)
-def create_action_item(meeting_id: int, action_item: schemas.ActionItemCreate, db: Session = Depends(get_db)):
+@router.post("/{meeting_id}/action-items", response_model=ActionItemSchema)
+def create_action_item(meeting_id: int, action_item: ActionItemCreate, db: Session = Depends(get_db)):
     db_item = ActionItem(meeting_id=meeting_id, description=action_item.description, assigned_to=action_item.assigned_to)
     db.add(db_item)
     db.commit()
