@@ -5,7 +5,7 @@ import traceback
 import os
 import re
 import base64
-from typing import AsyncGenerator, Optional, List, Dict
+from typing import AsyncGenerator, Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from ..config import settings
 
@@ -263,14 +263,52 @@ class LLMService:
         company_name="MyVCO", 
         company_description="", 
         system_prompt="", # NEW: Added personal instructions param
-        db: Session = None
+        db: Session = None,
+        context_settings: Optional[Dict[str, bool]] = None
     ):
+        """
+        Builds a system prompt from various context pieces.
+        If context_settings is provided, it filters which blocks are included.
+        Returns the final prompt string.
+        """
+        blocks = self.build_structured_prompt_blocks(
+            staff_name=staff_name,
+            role=role,
+            personality=personality,
+            expertise=expertise,
+            company_context=company_context,
+            meeting_context=meeting_context,
+            company_name=company_name,
+            company_description=company_description,
+            system_prompt=system_prompt,
+            db=db,
+            context_settings=context_settings
+        )
+        
+        enabled_parts = [b["content"] for b in blocks if b["enabled"]]
+        enabled_parts.append("\\nRespond naturally as this character.")
+        return "\\n".join(enabled_parts)
+
+    def build_structured_prompt_blocks(
+        self,
+        staff_name,
+        role,
+        personality,
+        expertise,
+        company_context,
+        meeting_context,
+        company_name="MyVCO",
+        company_description="",
+        system_prompt="",
+        db: Session = None,
+        context_settings: Optional[Dict[str, bool]] = None
+    ) -> List[Dict[str, Any]]:
         # Resolve dependencies in personality, expertise, and personal instructions
         if db:
             if personality:
                 personality = self.resolve_dependencies(personality, db)
             
-            if system_prompt: # Resolve dependencies in instructions
+            if system_prompt:
                 system_prompt = self.resolve_dependencies(system_prompt, db)
             
             if isinstance(expertise, list):
@@ -281,20 +319,47 @@ class LLMService:
         else:
             expertise_str = ", ".join(expertise) if isinstance(expertise, list) else str(expertise or "")
 
-        prompt_parts = [
-            f"You are {staff_name}, a {role} at {company_name}.",
-            f"{company_description}\\n" if company_description else "",
-            f"Your Personality: {personality}",
-            f"Your Expertise: {expertise_str}\\n",
-            "Personal Instructions:", # Add Header for Personal Instructions
-            f"{system_prompt}\\n" if system_prompt else "",
-            "Company Knowledge:",
-            f"{company_context}\\n" if company_context else "No specific context available.\\n",
-            "Meeting Context:",
-            f"{meeting_context}\\n" if meeting_context else "No previous context.\\n",
+        settings = context_settings or {
+            "personality": True,
+            "expertise": True,
+            "company_context": True,
+            "meeting_context": True,
+            "personal_instructions": True
+        }
+
+        blocks = [
+            {
+                "id": "personality",
+                "label": "Staff Personality",
+                "content": f"You are {staff_name}, a {role} at {company_name}.\\n{company_description}\\nYour Personality: {personality}" if personality else f"You are {staff_name}, a {role} at {company_name}.\\n{company_description}",
+                "enabled": settings.get("personality", True)
+            },
+            {
+                "id": "expertise",
+                "label": "Staff Expertise",
+                "content": f"Your Expertise: {expertise_str}",
+                "enabled": settings.get("expertise", True)
+            },
+            {
+                "id": "personal_instructions",
+                "label": "Personal Instructions",
+                "content": f"Personal Instructions:\\n{system_prompt}",
+                "enabled": settings.get("personal_instructions", True) and bool(system_prompt)
+            },
+            {
+                "id": "company_context",
+                "label": "Company Knowledge",
+                "content": f"Company Knowledge:\\n{company_context}" if company_context else "Company Knowledge:\\nNo specific context available.",
+                "enabled": settings.get("company_context", True)
+            },
+            {
+                "id": "meeting_context",
+                "label": "Meeting Context",
+                "content": f"Meeting Context:\\n{meeting_context}" if meeting_context else "Meeting Context:\\nNo previous context.",
+                "enabled": settings.get("meeting_context", True)
+            }
         ]
-        prompt_parts.append("\\nRespond naturally as this character.")
-        return "\\n".join(prompt_parts)
+        return blocks
     
     async def analyze_image(self, image_path, context=None):
         try:

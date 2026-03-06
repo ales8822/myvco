@@ -69,6 +69,8 @@ export const meetingsApi = {
     api.post(`/meetings/${meetingId}/action-items`, data),
   completeActionItem: (itemId) =>
     api.put(`/meetings/action-items/${itemId}/complete`),
+  updateContextSettings: (meetingId, staffId, data) =>
+    api.put(`/meetings/${meetingId}/participants/${staffId}/context-settings`, data),
 };
 
 // Knowledge

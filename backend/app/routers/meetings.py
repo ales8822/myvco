@@ -178,6 +178,7 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
                 staff_role=staff.role,
                 llm_provider=participant.llm_provider,
                 llm_model=participant.llm_model,
+                context_settings=participant.context_settings,
                 joined_at=participant.joined_at
             ))
             
@@ -257,7 +258,9 @@ async def send_message(
         meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
-        db=db
+        system_prompt=staff.personal_instructions or "",
+        db=db,
+        context_settings=participant.context_settings
     )
     
     # Apply explicit overrides if provided
@@ -317,6 +320,22 @@ async def preview_prompt(
     knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
     
+    # 2. Build structured prompt blocks
+    context_blocks_raw = llm_service.build_structured_prompt_blocks(
+        staff_name=staff.name,
+        role=staff.role,
+        personality=staff.personality,
+        expertise=staff.expertise,
+        company_context=knowledge_context,
+        meeting_context=meeting_context,
+        company_name=company.name if company else "MyVCO",
+        company_description=company.description if company else "",
+        system_prompt=staff.system_prompt or "",
+        db=db,
+        context_settings=participant.context_settings
+    )
+    
+    # Generate the final string for the preview
     system_prompt = llm_service.build_system_prompt(
         staff_name=staff.name,
         role=staff.role,
@@ -326,7 +345,9 @@ async def preview_prompt(
         meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
-        db=db
+        system_prompt=staff.system_prompt or "",
+        db=db,
+        context_settings=participant.context_settings
     )
     
     # 3. Handle mentions (images and assets) for Token Estimation & UI Thumbnail delivery
@@ -362,8 +383,28 @@ async def preview_prompt(
         "llm_provider": provider,
         "llm_model": model_name,
         "max_tokens": max_tokens,
-        "image_urls": image_urls
+        "image_urls": image_urls,
+        "context_blocks": context_blocks_raw
     }
+
+@router.put("/{meeting_id}/participants/{staff_id}/context-settings")
+async def update_participant_context_settings(
+    meeting_id: int, 
+    staff_id: int, 
+    request: schemas.UpdateContextSettingsRequest, 
+    db: Session = Depends(get_db)
+):
+    participant = db.query(MeetingParticipant).filter(
+        MeetingParticipant.meeting_id == meeting_id,
+        MeetingParticipant.staff_id == staff_id
+    ).first()
+    
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    
+    participant.context_settings = request.context_settings
+    db.commit()
+    return {"status": "success", "context_settings": participant.context_settings}
 
 @router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)
 def update_message(
@@ -447,7 +488,9 @@ async def resend_message(
         meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
-        db=db
+        system_prompt=staff.system_prompt or "",
+        db=db,
+        context_settings=participant.context_settings
     )
     
     # No custom overrides implemented in resend for now (can be passed via schema if updated, but keeping it simple)
@@ -538,7 +581,8 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 'expertise': p.staff.expertise,
                 'system_prompt': p.staff.system_prompt,
                 'llm_provider': p.llm_provider,
-                'llm_model': p.llm_model
+                'llm_model': p.llm_model,
+                'context_settings': p.context_settings
             })
             
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
@@ -570,8 +614,9 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 meeting_context=meeting_context,
                 company_name=company_name,
                 company_description=company_desc,
-                system_prompt=p_data['system_prompt'], 
-                db=db
+                system_prompt=p_data['system_prompt'] or "", 
+                db=db,
+                context_settings=p_data.get('context_settings')
             )
             
             # Allow overrides

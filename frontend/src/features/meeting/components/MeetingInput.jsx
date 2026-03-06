@@ -5,6 +5,7 @@ import { systemApi } from '../../../lib/api';
 import PromptPreviewModal from './PromptPreviewModal';
 
 export default function MeetingInput({
+    meetingId,
     inputMessage,
     setInputMessage,
     selectedStaffId,
@@ -333,6 +334,8 @@ export default function MeetingInput({
                 previewData={previewData}
                 onSend={handlePreviewSend}
                 isStreaming={isStreaming}
+                meetingId={meetingId}
+                staffId={selectedStaffId}
             />
         </div>
     );

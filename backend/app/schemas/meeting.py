@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class ParticipantConfig(BaseModel):
@@ -21,6 +21,7 @@ class MeetingParticipantInfo(BaseModel):
     department_name: Optional[str] = None
     llm_provider: str
     llm_model: Optional[str]
+    context_settings: Optional[Dict[str, bool]] = None
     joined_at: datetime
     
     class Config:
@@ -71,6 +72,12 @@ class SendMessageToAllRequest(BaseModel):
     custom_system_prompt: Optional[str] = None
     custom_user_content: Optional[str] = None
 
+class PromptBlock(BaseModel):
+    id: str
+    label: str
+    content: str
+    enabled: bool
+
 class PromptPreviewResponse(BaseModel):
     system_prompt: str
     user_content: str
@@ -78,8 +85,12 @@ class PromptPreviewResponse(BaseModel):
     llm_model: Optional[str] = None
     max_tokens: int
     image_urls: List[str] = []
+    context_blocks: List[PromptBlock] = []
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str
     summary_llm_provider: Optional[str] = "gemini"
     summary_llm_model: Optional[str] = None
+
+class UpdateContextSettingsRequest(BaseModel):
+    context_settings: Dict[str, bool]

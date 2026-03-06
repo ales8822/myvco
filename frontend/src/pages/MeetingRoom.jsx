@@ -176,6 +176,7 @@ export default function MeetingRoom() {
 
                         {currentMeeting?.status === 'active' && (
                             <MeetingInput
+                                meetingId={meetingId}
                                 inputMessage={inputMessage}
                                 setInputMessage={setInputMessage}
                                 selectedStaffId={selectedStaffId}

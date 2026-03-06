@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Eye, Cpu } from 'lucide-react';
+import { X, Send, Eye, Cpu, CheckSquare, Square as SquareIcon, Settings2 } from 'lucide-react';
 import { estimateTokenCount } from '../utils/tokenUtils';
+import { meetingsApi } from '../../../lib/api';
 
 export default function PromptPreviewModal({
     isOpen,
     onClose,
     previewData,
     onSend,
-    isStreaming
+    isStreaming,
+    meetingId,
+    staffId
 }) {
+    const [blocks, setBlocks] = useState([]);
     const [systemPrompt, setSystemPrompt] = useState('');
     const [userContent, setUserContent] = useState('');
     const [maxTokens, setMaxTokens] = useState(8192);
@@ -17,6 +21,7 @@ export default function PromptPreviewModal({
 
     useEffect(() => {
         if (previewData) {
+            setBlocks(previewData.context_blocks || []);
             setSystemPrompt(previewData.system_prompt || '');
             setUserContent(previewData.user_content || '');
             setMaxTokens(previewData.max_tokens || 8192);
@@ -24,6 +29,16 @@ export default function PromptPreviewModal({
             setImageUrls(previewData.image_urls || []);
         }
     }, [previewData]);
+
+    const toggleBlock = (id) => {
+        const newBlocks = blocks.map(b => b.id === id ? { ...b, enabled: !b.enabled } : b);
+        setBlocks(newBlocks);
+        
+        // Re-construct system prompt string based on toggles
+        const enabledParts = newBlocks.filter(b => b.enabled).map(b => b.content);
+        enabledParts.push("\nRespond naturally as this character.");
+        setSystemPrompt(enabledParts.join('\n'));
+    };
 
     const systemTokens = estimateTokenCount(systemPrompt);
     const userTokens = estimateTokenCount(userContent);
@@ -41,7 +56,18 @@ export default function PromptPreviewModal({
 
     if (!isOpen) return null;
 
-    const handleSend = () => {
+    const handleSend = async () => {
+        // Persist settings to backend
+        try {
+            const context_settings = {};
+            blocks.forEach(b => {
+                context_settings[b.id] = b.enabled;
+            });
+            await meetingsApi.updateContextSettings(meetingId, staffId, { context_settings });
+        } catch (e) {
+            console.error("Failed to persist context settings", e);
+        }
+
         onSend({
             systemPrompt,
             userContent
@@ -118,14 +144,43 @@ export default function PromptPreviewModal({
                         </div>
                     )}
 
+                    {/* Context Block Toggles */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <Settings2 size={16} />
+                            <span>Context Block Toggles</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {blocks.map(block => (
+                                <button
+                                    key={block.id}
+                                    onClick={() => toggleBlock(block.id)}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                        block.enabled 
+                                        ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                                        : 'bg-gray-50 border-gray-100 text-gray-400 opacity-60'
+                                    }`}
+                                >
+                                    {block.enabled ? <CheckSquare size={18} /> : <SquareIcon size={18} />}
+                                    <div className="flex-1 text-left">
+                                        <div className="text-sm font-bold leading-tight">{block.label}</div>
+                                        <div className="text-[10px] uppercase font-mono mt-0.5">
+                                            {estimateTokenCount(block.content)} tokens
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* System Prompt Section */}
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-semibold text-gray-700 uppercase tracking-wider">System Prompt (Context & Personality)</label>
+                            <label className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Final System Prompt (Full Output)</label>
                             <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">EDITABLE</span>
                         </div>
                         <textarea
-                            className="w-full h-80 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm resize-none"
+                            className="w-full h-60 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm resize-none"
                             value={systemPrompt}
                             onChange={(e) => setSystemPrompt(e.target.value)}
                             placeholder="Constructed system prompt will appear here..."

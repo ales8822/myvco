@@ -1,5 +1,5 @@
 # backend\app\models\meeting.py
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -37,6 +37,16 @@ class MeetingParticipant(Base):
     # Dynamic LLM Configuration for this specific meeting
     llm_provider = Column(String(50), default="gemini")
     llm_model = Column(String(100), nullable=True)
+    
+    # Context settings (personality, knowledge, history, etc.)
+    # Default: everything enabled
+    context_settings = Column(JSON, default=lambda: {
+        "personality": True, 
+        "expertise": True, 
+        "company_context": True, 
+        "meeting_context": True, 
+        "personal_instructions": True
+    })
     
     joined_at = Column(DateTime, default=datetime.utcnow)
     
