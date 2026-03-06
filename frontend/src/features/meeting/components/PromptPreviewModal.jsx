@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Eye, Cpu, CheckSquare, Square as SquareIcon, Settings2 } from 'lucide-react';
+import { X, Send, Eye, Cpu, CheckSquare, Square as SquareIcon, Settings2, User, Bot, Terminal } from 'lucide-react';
 import { estimateTokenCount } from '../utils/tokenUtils';
 import { meetingsApi } from '../../../lib/api';
 
@@ -18,6 +18,52 @@ export default function PromptPreviewModal({
     const [maxTokens, setMaxTokens] = useState(8192);
     const [llmInfo, setLlmInfo] = useState('');
     const [imageUrls, setImageUrls] = useState([]);
+    const [isEditingSystem, setIsEditingSystem] = useState(false);
+    const [isEditingUser, setIsEditingUser] = useState(false);
+
+    // Simple syntax highlighter for the preview
+    const renderHighlightedText = (text) => {
+        if (!text) return null;
+        
+        // Regex to find keywords: "User:", "Personality:", Staff names like "Lexicon:", etc.
+        // We'll highlight standard prefixes and things ending in colon at the start of lines
+        const lines = text.split('\n');
+        return lines.map((line, i) => {
+            const colonIndex = line.indexOf(':');
+            if (colonIndex > 0 && colonIndex < 30) { // Likely a prefix
+                const prefix = line.substring(0, colonIndex + 1);
+                const content = line.substring(colonIndex + 1);
+                
+                let prefixClass = "font-bold ";
+                let containerClass = "min-h-[1.2em] py-0.5 ";
+                
+                if (prefix.toLowerCase().includes("user:")) {
+                    prefixClass += "text-blue-600";
+                    containerClass += "mt-4 pt-2 border-t border-gray-100"; // Visual break for user turns
+                }
+                else if (prefix.toLowerCase().includes("personality:") || prefix.toLowerCase().includes("expertise:")) {
+                    prefixClass += "text-indigo-600";
+                    containerClass += "mt-3 first:mt-0";
+                }
+                else if (prefix.toLowerCase().includes("knowledge:") || prefix.toLowerCase().includes("context:")) {
+                    prefixClass += "text-amber-600";
+                    containerClass += "mt-3";
+                }
+                else {
+                    prefixClass += "text-purple-600"; // Staff names
+                    containerClass += "mt-2"; // Slight gap for staff response
+                }
+
+                return (
+                    <div key={i} className={containerClass}>
+                        <span className={prefixClass}>{prefix}</span>
+                        <span className="ml-1">{content}</span>
+                    </div>
+                );
+            }
+            return <div key={i} className="min-h-[1.2em] leading-relaxed">{line}</div>;
+        });
+    };
 
     useEffect(() => {
         if (previewData) {
@@ -174,31 +220,84 @@ export default function PromptPreviewModal({
                     </div>
 
                     {/* System Prompt Section */}
-                    <div className="space-y-2">
+                    <div className="space-y-3 p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 shadow-sm transition-all hover:shadow-md">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Final System Prompt (Full Output)</label>
-                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">EDITABLE</span>
+                            <div className="flex items-center gap-2 text-indigo-700">
+                                <Bot size={18} />
+                                <label className="text-sm font-bold uppercase tracking-wider">Final System Prompt</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setIsEditingSystem(!isEditingSystem)}
+                                    className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase transition-colors ${
+                                        isEditingSystem ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+                                    }`}
+                                >
+                                    {isEditingSystem ? 'Finish Editing' : 'Edit Text'}
+                                </button>
+                                <span className="text-[10px] bg-white text-indigo-400 border border-indigo-100 px-2 py-0.5 rounded font-mono uppercase">Instructional Context</span>
+                            </div>
                         </div>
-                        <textarea
-                            className="w-full h-60 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm resize-none"
-                            value={systemPrompt}
-                            onChange={(e) => setSystemPrompt(e.target.value)}
-                            placeholder="Constructed system prompt will appear here..."
-                        />
+                        <div className="relative group min-h-[15rem]">
+                            {isEditingSystem ? (
+                                <>
+                                    <div className="absolute top-3 left-3 text-indigo-300 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                        <Terminal size={14} />
+                                    </div>
+                                    <textarea
+                                        autoFocus
+                                        className="w-full h-60 pl-9 pr-4 py-3 bg-white border border-indigo-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono text-sm resize-none shadow-inner"
+                                        value={systemPrompt}
+                                        onChange={(e) => setSystemPrompt(e.target.value)}
+                                        placeholder="Constructed system prompt will appear here..."
+                                    />
+                                </>
+                            ) : (
+                                <div 
+                                    onClick={() => setIsEditingSystem(true)}
+                                    className="w-full h-60 p-4 bg-white border border-indigo-100 rounded-xl font-mono text-xs overflow-y-auto cursor-text hover:border-indigo-300 transition-colors shadow-inner"
+                                >
+                                    {renderHighlightedText(systemPrompt)}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* User Content Section */}
-                    <div className="space-y-2">
+                    <div className="space-y-3 p-5 bg-emerald-50/30 rounded-2xl border border-emerald-100 shadow-sm transition-all hover:shadow-md">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-semibold text-gray-700 uppercase tracking-wider">User Message</label>
-                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">EDITABLE</span>
+                            <div className="flex items-center gap-2 text-emerald-700">
+                                <User size={18} />
+                                <label className="text-sm font-bold uppercase tracking-wider">User Message</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setIsEditingUser(!isEditingUser)}
+                                    className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase transition-colors ${
+                                        isEditingUser ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                                    }`}
+                                >
+                                    {isEditingUser ? 'Finish Editing' : 'Edit Text'}
+                                </button>
+                                <span className="text-[10px] bg-white text-emerald-400 border border-emerald-100 px-2 py-0.5 rounded font-mono uppercase">Input Content</span>
+                            </div>
                         </div>
-                        <textarea
-                            className="w-full h-40 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm resize-none"
-                            value={userContent}
-                            onChange={(e) => setUserContent(e.target.value)}
-                            placeholder="User message will appear here..."
-                        />
+                        {isEditingUser ? (
+                            <textarea
+                                autoFocus
+                                className="w-full h-40 p-4 bg-white border border-emerald-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-mono text-sm resize-none shadow-inner"
+                                value={userContent}
+                                onChange={(e) => setUserContent(e.target.value)}
+                                placeholder="User message will appear here..."
+                            />
+                        ) : (
+                            <div 
+                                onClick={() => setIsEditingUser(true)}
+                                className="w-full h-40 p-4 bg-white border border-emerald-100 rounded-xl font-mono text-xs overflow-y-auto cursor-text hover:border-emerald-300 transition-colors shadow-inner"
+                            >
+                                {renderHighlightedText(userContent)}
+                            </div>
+                        )}
                     </div>
                 </div>
 

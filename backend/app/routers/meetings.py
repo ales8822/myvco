@@ -258,7 +258,7 @@ async def send_message(
         meeting_context=meeting_context,
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
-        system_prompt=staff.personal_instructions or "",
+        system_prompt=staff.system_prompt or "",
         db=db,
         context_settings=participant.context_settings
     )
