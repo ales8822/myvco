@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
 from ..models import LibraryItem
-from ..schemas import library as schemas
+from .. import schemas
 
 router = APIRouter(prefix="/library", tags=["library"])
 

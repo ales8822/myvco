@@ -6,7 +6,7 @@ import io
 from pypdf import PdfReader
 from ..database import get_db
 from ..models import Knowledge, Company
-from ..schemas import knowledge as schemas
+from .. import schemas
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 

@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 from ..services import llm_service
 from ..config import settings
-from ..schemas import llm as schemas
+from .. import schemas
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 

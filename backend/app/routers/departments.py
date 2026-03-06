@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
 from ..models import Department, Company, Staff
-from ..schemas import department as schemas
+from .. import schemas
 
 router = APIRouter(prefix="/departments", tags=["departments"])
 

@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 from ..database import get_db
 from ..models import Staff, Company
-from ..schemas import staff as schemas
+from .. import schemas
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 
