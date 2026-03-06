@@ -74,6 +74,9 @@ class SendMessageToAllRequest(BaseModel):
 class PromptPreviewResponse(BaseModel):
     system_prompt: str
     user_content: str
+    llm_provider: str
+    llm_model: Optional[str] = None
+    max_tokens: int
 
 class UpdateMeetingStatusRequest(BaseModel):
     status: str

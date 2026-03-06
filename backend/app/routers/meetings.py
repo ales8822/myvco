@@ -327,9 +327,16 @@ async def preview_prompt(
         db=db
     )
     
+    provider = participant.llm_provider
+    model_name = participant.llm_model or ("gemini-2.0-flash" if provider == "gemini" else "llama3")
+    max_tokens = await llm_service.get_max_tokens(provider, model_name, db)
+    
     return {
         "system_prompt": system_prompt,
-        "user_content": message.content
+        "user_content": message.content,
+        "llm_provider": provider,
+        "llm_model": model_name,
+        "max_tokens": max_tokens
     }
 
 @router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)

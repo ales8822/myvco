@@ -46,6 +46,59 @@ class LLMService:
             return []
         
         return []
+
+    async def get_max_tokens(self, provider: str, model_name: str, db: Session) -> int:
+        from ..models import LlmModelLimit
+        # Check cache
+        cached = db.query(LlmModelLimit).filter(
+            LlmModelLimit.provider == provider,
+            LlmModelLimit.model_name == model_name
+        ).first()
+        if cached:
+            return cached.max_tokens
+
+        # Fallback default
+        limit = 8192 
+        
+        if provider == "gemini":
+            try:
+                # gemini models need models/ prefix sometimes, but let's try direct first
+                model_path = model_name if model_name.startswith("models/") else f"models/{model_name}"
+                model_info = genai.get_model(model_path)
+                if hasattr(model_info, 'input_token_limit'):
+                    limit = model_info.input_token_limit
+            except Exception as e:
+                print(f"Error fetching gemini model limit for {model_name}: {e}")
+                # Defaults based on model names
+                if "flash" in model_name or "pro" in model_name:
+                    limit = 1048576
+                else:
+                    limit = 32768
+        
+        elif provider == "ollama":
+            if settings.ollama_base_url:
+                try:
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        resp = await client.post(f"{settings.ollama_base_url}/api/show", json={"model": model_name})
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            model_info = data.get("model_info", {})
+                            for key, val in model_info.items():
+                                if "context_length" in key:
+                                    limit = int(val)
+                                    break
+                except Exception as e:
+                    print(f"Error fetching ollama model limit for {model_name}: {e}")
+
+        try:
+            new_limit = LlmModelLimit(provider=provider, model_name=model_name, max_tokens=limit)
+            db.add(new_limit)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error caching model limit: {e}")
+            
+        return limit
     
     async def generate_stream(
         self,

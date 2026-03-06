@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Eye } from 'lucide-react';
+import { X, Send, Eye, Cpu } from 'lucide-react';
+import { estimateTokenCount } from '../utils/tokenUtils';
 
 export default function PromptPreviewModal({
     isOpen,
@@ -10,13 +11,30 @@ export default function PromptPreviewModal({
 }) {
     const [systemPrompt, setSystemPrompt] = useState('');
     const [userContent, setUserContent] = useState('');
+    const [maxTokens, setMaxTokens] = useState(8192);
+    const [llmInfo, setLlmInfo] = useState('');
 
     useEffect(() => {
         if (previewData) {
             setSystemPrompt(previewData.system_prompt || '');
             setUserContent(previewData.user_content || '');
+            setMaxTokens(previewData.max_tokens || 8192);
+            setLlmInfo(`${previewData.llm_provider || 'gemini'} / ${previewData.llm_model || 'default'}`);
         }
     }, [previewData]);
+
+    const systemTokens = estimateTokenCount(systemPrompt);
+    const userTokens = estimateTokenCount(userContent);
+    const totalTokens = systemTokens + userTokens;
+    const isOverLimit = totalTokens > maxTokens;
+    
+    // Calculate percentage for progress bar (cap at 100%)
+    const percentage = Math.min(100, (totalTokens / maxTokens) * 100);
+    
+    // Choose color based on usage
+    let progressColor = "bg-green-500";
+    if (isOverLimit) progressColor = "bg-red-500";
+    else if (percentage > 80) progressColor = "bg-amber-500";
 
     if (!isOpen) return null;
 
@@ -31,20 +49,46 @@ export default function PromptPreviewModal({
     return (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100">
-                {/* Header */}
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                            <Eye size={20} />
+                {/* Header Section with Token Bar */}
+                <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                <Eye size={20} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">Prompt Preview</h2>
+                            {llmInfo && (
+                                <span className="ml-2 text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded border border-gray-200 flex items-center gap-1">
+                                    <Cpu size={12} /> {llmInfo}
+                                </span>
+                            )}
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900">Prompt Preview</h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
+
+                    {/* Token Usage Bar */}
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between items-center text-xs font-semibold">
+                            <span className="text-gray-600 uppercase tracking-wider">Token Usage Estimation</span>
+                            <span className={`${isOverLimit ? 'text-red-600' : 'text-gray-900'} font-mono`}>
+                                {totalTokens.toLocaleString()} <span className="text-gray-400">/ {maxTokens.toLocaleString()} Max</span>
+                            </span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                            <div 
+                                className={`h-full transition-all duration-300 ${progressColor}`} 
+                                style={{ width: `${percentage}%` }}
+                            />
+                        </div>
+                        {isOverLimit && (
+                            <p className="text-xs text-red-600 font-medium">⚠️ Warning: Complete prompt exceeds the model's context window. It may fail to send.</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Content */}

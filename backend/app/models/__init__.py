@@ -6,6 +6,7 @@ from .meeting import Meeting, MeetingParticipant, MeetingMessage, MeetingImage, 
 from .knowledge import Knowledge
 from .company_asset import CompanyAsset
 from .library import LibraryItem
+from .llm import LlmModelLimit
 
 __all__ = [
     "Company",
@@ -19,6 +20,7 @@ __all__ = [
     "MeetingTemplate",
     "Knowledge",
     "CompanyAsset",
-    "LibraryItem"
+    "LibraryItem",
+    "LlmModelLimit"
 ]
 
