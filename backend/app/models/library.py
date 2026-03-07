@@ -11,4 +11,5 @@ class LibraryItem(Base):
     name = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     description = Column(Text)
+    category = Column(String(50), default="manifesto")  # New field
     is_global = Column(Boolean, default=True)

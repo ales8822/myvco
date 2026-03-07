@@ -17,6 +17,7 @@ class Staff(Base):
     personality = Column(Text)
     expertise = Column(JSON)
     system_prompt = Column(Text)
+    knowledge_base = Column(Text, nullable=True)  # New field
     is_active = Column(Boolean, default=True, nullable=False)  # Soft delete flag
     fired_at = Column(DateTime, nullable=True)  # When staff was fired
     fired_reason = Column(Text, nullable=True)  # Reason for firing

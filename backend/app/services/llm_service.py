@@ -263,6 +263,7 @@ class LLMService:
         company_name="MyVCO", 
         company_description="", 
         system_prompt="", # NEW: Added personal instructions param
+        knowledge_base="", # NEW: Added knowledge base param
         db: Session = None,
         context_settings: Optional[Dict[str, bool]] = None
     ):
@@ -281,6 +282,7 @@ class LLMService:
             company_name=company_name,
             company_description=company_description,
             system_prompt=system_prompt,
+            knowledge_base=knowledge_base,
             db=db,
             context_settings=context_settings
         )
@@ -300,16 +302,20 @@ class LLMService:
         company_name="MyVCO",
         company_description="",
         system_prompt="",
+        knowledge_base="", # NEW
         db: Session = None,
         context_settings: Optional[Dict[str, bool]] = None
     ) -> List[Dict[str, Any]]:
-        # Resolve dependencies in personality, expertise, and personal instructions
+        # Resolve dependencies in personality, expertise, personal instructions, and knowledge base
         if db:
             if personality:
                 personality = self.resolve_dependencies(personality, db)
             
             if system_prompt:
                 system_prompt = self.resolve_dependencies(system_prompt, db)
+
+            if knowledge_base:
+                knowledge_base = self.resolve_dependencies(knowledge_base, db)
             
             if isinstance(expertise, list):
                 expertise_str = ", ".join(expertise)
@@ -324,14 +330,15 @@ class LLMService:
             "expertise": True,
             "company_context": True,
             "meeting_context": True,
-            "personal_instructions": True
+            "personal_instructions": True,
+            "knowledge_base": True
         }
 
         blocks = [
             {
                 "id": "personality",
                 "label": "Staff Personality",
-                "content": f"You are {staff_name}, a {role} at {company_name}.\\n{company_description}\\nYour Personality: {personality}" if personality else f"You are {staff_name}, a {role} at {company_name}.\\n{company_description}",
+                "content": f"You are {staff_name}, a {role} at {company_name}.\n{company_description}\nYour Personality: {personality}" if personality else f"You are {staff_name}, a {role} at {company_name}.\n{company_description}",
                 "enabled": settings.get("personality", True)
             },
             {
@@ -341,21 +348,27 @@ class LLMService:
                 "enabled": settings.get("expertise", True)
             },
             {
+                "id": "knowledge_base",
+                "label": "Agent Knowledge Base",
+                "content": f"Agent Knowledge Base:\n{knowledge_base}",
+                "enabled": settings.get("knowledge_base", True) and bool(knowledge_base)
+            },
+            {
                 "id": "personal_instructions",
                 "label": "Personal Instructions",
-                "content": f"Personal Instructions:\\n{system_prompt}",
+                "content": f"Personal Instructions:\n{system_prompt}",
                 "enabled": settings.get("personal_instructions", True) and bool(system_prompt)
             },
             {
                 "id": "company_context",
                 "label": "Company Knowledge",
-                "content": f"Company Knowledge:\\n{company_context}" if company_context else "Company Knowledge:\\nNo specific context available.",
+                "content": f"Company Knowledge:\n{company_context}" if company_context else "Company Knowledge:\nNo specific context available.",
                 "enabled": settings.get("company_context", True)
             },
             {
                 "id": "meeting_context",
                 "label": "Meeting Context",
-                "content": f"Meeting Context:\\n{meeting_context}" if meeting_context else "Meeting Context:\\nNo previous context.",
+                "content": f"Meeting Context:\n{meeting_context}" if meeting_context else "Meeting Context:\nNo previous context.",
                 "enabled": settings.get("meeting_context", True)
             }
         ]

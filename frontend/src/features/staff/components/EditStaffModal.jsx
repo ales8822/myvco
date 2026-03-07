@@ -54,7 +54,10 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'system_prompt' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt', true)} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'system_prompt', true)} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <textarea
                             className="input"
@@ -62,6 +65,32 @@ export default function EditStaffModal({
                             value={editForm.system_prompt}
                             onChange={(e) => handleInputChange('system_prompt', e.target.value, true)}
                             placeholder="Specific rules, manifestos, or behavioral instructions"
+                        />
+                    </div>
+                    {/* Knowledge Base */}
+                    <div className="mb-4 relative group">
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="label mb-0 font-bold text-amber-600">Knowledge Base</label>
+                            <button
+                                type="button"
+                                onClick={() => setActiveDropdown(activeDropdown === 'knowledge_base' ? null : 'knowledge_base')}
+                                className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+                            >
+                                <BookOpen className="w-3 h-3" /> Library
+                            </button>
+                        </div>
+                        {activeDropdown === 'knowledge_base' && (
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'knowledge_base', true)} 
+                                libraryItems={libraryItems.filter(i => i.category === 'knowledge')} 
+                            />
+                        )}
+                        <textarea
+                            className="input border-amber-100 focus:border-amber-500"
+                            rows="3"
+                            value={editForm.knowledge_base}
+                            onChange={(e) => handleInputChange('knowledge_base', e.target.value, true)}
+                            placeholder="Factual knowledge, documents, or data"
                         />
                     </div>
                     {/* Personality */}
@@ -77,7 +106,10 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'personality' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality', true)} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'personality', true)} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <textarea
                             className="input"
@@ -100,7 +132,10 @@ export default function EditStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'expertise' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise', true)} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'expertise', true)} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <input
                             type="text"

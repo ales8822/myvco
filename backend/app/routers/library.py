@@ -25,6 +25,7 @@ def create_library_item(item: schemas.LibraryItemCreate, db: Session = Depends(g
         name=item.name,
         content=item.content,
         description=item.description,
+        category=item.category,
         is_global=item.is_global
     )
     db.add(db_item)

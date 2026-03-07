@@ -16,6 +16,7 @@ export default function GlobalStaffPool() {
         personality: '',
         expertise: '',
         system_prompt: '',
+        knowledge_base: '',
     });
 
     useEffect(() => {
@@ -75,7 +76,7 @@ export default function GlobalStaffPool() {
         
         setShowCreateModal(false);
         setEditingStaff(null);
-        setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '' });
+        setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '', knowledge_base: '' });
     };
 
     const openEditModal = (agent) => {
@@ -86,6 +87,7 @@ export default function GlobalStaffPool() {
             personality: agent.personality || '',
             expertise: Array.isArray(agent.expertise) ? agent.expertise.join(', ') : (agent.expertise || ''),
             system_prompt: agent.system_prompt || '',
+            knowledge_base: agent.knowledge_base || '',
         });
         setShowCreateModal(true);
     };
@@ -167,7 +169,7 @@ export default function GlobalStaffPool() {
                             <p className="text-gray-500 text-lg">No unassigned agents available.</p>
                             <button 
                                 onClick={() => {
-                                    setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '' });
+                                    setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '', knowledge_base: '' });
                                     setShowCreateModal(true);
                                 }}
                                 className="mt-4 text-primary-600 font-medium hover:underline"

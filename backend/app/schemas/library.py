@@ -6,6 +6,7 @@ class LibraryItemBase(BaseModel):
     name: str
     content: str
     description: Optional[str] = None
+    category: str = "manifesto"
     is_global: bool = True
 
 class LibraryItemCreate(LibraryItemBase):
@@ -16,6 +17,7 @@ class LibraryItemUpdate(BaseModel):
     name: Optional[str] = None
     content: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[str] = None
     is_global: Optional[bool] = None
 
 class LibraryItem(LibraryItemBase):

@@ -19,13 +19,13 @@ export default function StaffManagement() {
     const [editingStaff, setEditingStaff] = useState(null);
     const [activeDropdown, setActiveDropdown] = useState(null);
 
-    // Form state
     const [formData, setFormData] = useState({
         name: '',
         role: '',
         personality: '',
         expertise: '',
         system_prompt: '',
+        knowledge_base: '',
         department_id: '',
     });
     const [editForm, setEditForm] = useState({
@@ -34,6 +34,7 @@ export default function StaffManagement() {
         personality: '',
         expertise: '',
         system_prompt: '',
+        knowledge_base: '',
         department_id: '',
     });
 
@@ -84,6 +85,7 @@ export default function StaffManagement() {
             personality: member.personality || '',
             expertise: Array.isArray(member.expertise) ? member.expertise.join(', ') : (member.expertise || ''),
             system_prompt: member.system_prompt || '',
+            knowledge_base: member.knowledge_base || '',
             department_id: member.department_id || '',
         });
         setShowEditModal(true);
@@ -94,7 +96,7 @@ export default function StaffManagement() {
         e.preventDefault();
         await handleHire(formData);
         setShowHireModal(false);
-        setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '', department_id: '' });
+        setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '', knowledge_base: '', department_id: '' });
         setActiveDropdown(null);
     };
 

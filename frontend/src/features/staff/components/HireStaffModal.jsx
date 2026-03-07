@@ -57,14 +57,43 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'system_prompt' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'system_prompt')} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'system_prompt')} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <textarea
                             className="input"
                             rows="3"
                             value={formData.system_prompt}
                             onChange={(e) => handleInputChange('system_prompt', e.target.value)}
-                            placeholder="Specific rules, manifestos, or behavioral instructions (e.g. @coding_manifesto)"
+                            placeholder="Specific rules, manifestos, or behavioral instructions (e.g. @personality_manifesto)"
+                        />
+                    </div>
+                    {/* Knowledge Base */}
+                    <div className="mb-4 relative group">
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="label mb-0 font-bold text-amber-600">Knowledge Base (Factual Context)</label>
+                            <button
+                                type="button"
+                                onClick={() => setActiveDropdown(activeDropdown === 'knowledge_base' ? null : 'knowledge_base')}
+                                className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+                            >
+                                <BookOpen className="w-3 h-3" /> Library
+                            </button>
+                        </div>
+                        {activeDropdown === 'knowledge_base' && (
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'knowledge_base')} 
+                                libraryItems={libraryItems.filter(i => i.category === 'knowledge')} 
+                            />
+                        )}
+                        <textarea
+                            className="input border-amber-100 focus:border-amber-500"
+                            rows="3"
+                            value={formData.knowledge_base}
+                            onChange={(e) => handleInputChange('knowledge_base', e.target.value)}
+                            placeholder="Factual knowledge, documents, or data (e.g. @product_specs)"
                         />
                     </div>
                     {/* Personality */}
@@ -80,7 +109,10 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'personality' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'personality')} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'personality')} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <textarea
                             className="input"
@@ -103,7 +135,10 @@ export default function HireStaffModal({
                             </button>
                         </div>
                         {activeDropdown === 'expertise' && (
-                            <QuickAddDropdown onSelect={(tag) => insertTag(tag, 'expertise')} libraryItems={libraryItems} />
+                            <QuickAddDropdown 
+                                onSelect={(tag) => insertTag(tag, 'expertise')} 
+                                libraryItems={libraryItems.filter(i => i.category === 'manifesto' || !i.category)} 
+                            />
                         )}
                         <input
                             type="text"

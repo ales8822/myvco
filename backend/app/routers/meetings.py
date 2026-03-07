@@ -259,6 +259,7 @@ async def send_message(
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
         system_prompt=staff.system_prompt or "",
+        knowledge_base=staff.knowledge_base or "",
         db=db,
         context_settings=participant.context_settings
     )
@@ -331,6 +332,7 @@ async def preview_prompt(
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
         system_prompt=staff.system_prompt or "",
+        knowledge_base=staff.knowledge_base or "",
         db=db,
         context_settings=participant.context_settings
     )
@@ -346,6 +348,7 @@ async def preview_prompt(
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
         system_prompt=staff.system_prompt or "",
+        knowledge_base=staff.knowledge_base or "",
         db=db,
         context_settings=participant.context_settings
     )
@@ -489,6 +492,7 @@ async def resend_message(
         company_name=company.name if company else "MyVCO",
         company_description=company.description if company else "",
         system_prompt=staff.system_prompt or "",
+        knowledge_base=staff.knowledge_base or "",
         db=db,
         context_settings=participant.context_settings
     )
@@ -580,6 +584,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 'personality': p.staff.personality,
                 'expertise': p.staff.expertise,
                 'system_prompt': p.staff.system_prompt,
+                'knowledge_base': p.staff.knowledge_base,
                 'llm_provider': p.llm_provider,
                 'llm_model': p.llm_model,
                 'context_settings': p.context_settings
@@ -615,6 +620,7 @@ async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAl
                 company_name=company_name,
                 company_description=company_desc,
                 system_prompt=p_data['system_prompt'] or "", 
+                knowledge_base=p_data.get('knowledge_base') or "",
                 db=db,
                 context_settings=p_data.get('context_settings')
             )

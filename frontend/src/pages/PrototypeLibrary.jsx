@@ -24,6 +24,7 @@ const PrototypeLibrary = () => {
         name: "",
         content: "",
         description: "",
+        category: "manifesto",
         is_global: true,
     });
 
@@ -34,6 +35,7 @@ const PrototypeLibrary = () => {
             name: "",
             content: "",
             description: "",
+            category: "manifesto",
             is_global: true,
         });
         setIsEditing(true);
@@ -46,6 +48,7 @@ const PrototypeLibrary = () => {
             name: item.name,
             content: item.content,
             description: item.description || "",
+            category: item.category || "manifesto",
             is_global: item.is_global,
         });
         setIsEditing(true);

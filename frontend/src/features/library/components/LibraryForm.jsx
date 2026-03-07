@@ -24,7 +24,7 @@ export default function LibraryForm({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-1">
                             Module Name
@@ -53,9 +53,39 @@ export default function LibraryForm({
                                 placeholder="coding_manifesto"
                             />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Use this tag in staff expertise/personality to inject content.
-                        </p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Category
+                        </label>
+                        <div className="flex gap-6 mt-2">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                    type="radio"
+                                    name="category"
+                                    value="manifesto"
+                                    checked={formData.category === 'manifesto'}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                    className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 focus:ring-purple-500 focus:ring-offset-gray-800"
+                                />
+                                <span className={`text-sm font-medium transition-colors ${formData.category === 'manifesto' ? 'text-purple-400' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                                    Manifesto
+                                </span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                    type="radio"
+                                    name="category"
+                                    value="knowledge"
+                                    checked={formData.category === 'knowledge'}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                    className="w-4 h-4 text-amber-500 bg-gray-700 border-gray-600 focus:ring-amber-500 focus:ring-offset-gray-800"
+                                />
+                                <span className={`text-sm font-medium transition-colors ${formData.category === 'knowledge' ? 'text-amber-400' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                                    Knowledge Base
+                                </span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
