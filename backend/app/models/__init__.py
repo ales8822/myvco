@@ -2,6 +2,7 @@
 from .company import Company
 from .department import Department
 from .staff import Staff
+from .association_tables import company_staff
 from .meeting import Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, MeetingTemplate
 from .knowledge import Knowledge
 from .company_asset import CompanyAsset

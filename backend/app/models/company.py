@@ -18,7 +18,7 @@ class Company(Base):
     
     # Relationships
     departments = relationship("Department", back_populates="company", cascade="all, delete-orphan")
-    staff = relationship("Staff", back_populates="company", cascade="all, delete-orphan")
+    staff = relationship("Staff", secondary="company_staff", back_populates="companies")
     meetings = relationship("Meeting", back_populates="company", cascade="all, delete-orphan")
     knowledge = relationship("Knowledge", back_populates="company", cascade="all, delete-orphan")
     assets = relationship("CompanyAsset", back_populates="company", cascade="all, delete-orphan")

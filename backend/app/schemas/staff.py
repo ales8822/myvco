@@ -20,9 +20,15 @@ class StaffUpdate(BaseModel):
     system_prompt: Optional[str] = None
     department_id: Optional[int] = None
 
+class CompanyShort(BaseModel):
+    id: int
+    name: str
+    class Config:
+        from_attributes = True
+
 class Staff(StaffBase):
     id: int
-    company_id: int
+    companies: List[CompanyShort] = []
     department_id: Optional[int] = None
     department_name: Optional[str] = None
     is_active: bool = True

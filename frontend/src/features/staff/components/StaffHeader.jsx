@@ -13,7 +13,7 @@ export default function StaffHeader({ showFiredStaff, setShowFiredStaff, setShow
                     onClick={() => setShowHireModal(true)}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                    + Hire Staff
+                    Hire from Pool
                 </button>
                 <button
                     onClick={() => setShowFiredStaff(!showFiredStaff)}

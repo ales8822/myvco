@@ -3,13 +3,15 @@ import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import StaffHeader from '../features/staff/components/StaffHeader';
 import StaffList from '../features/staff/components/StaffList';
-import HireStaffModal from '../features/staff/components/HireStaffModal';
+import HireFromPoolModal from '../features/staff/components/HireFromPoolModal';
 import EditStaffModal from '../features/staff/components/EditStaffModal';
+import { useCompanyStore } from '../stores/companyStore';
 import QuickAddDropdown from '../components/QuickAddDropdown'; // shared component
 import { useStaffData } from '../features/staff/hooks/useStaffData';
 import { useStaffActions } from '../features/staff/hooks/useStaffActions';
 
 export default function StaffManagement() {
+    const { currentCompany } = useCompanyStore();
     // UI state
     const [showHireModal, setShowHireModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -133,18 +135,10 @@ export default function StaffManagement() {
                         setEditingStaff={setEditingStaff}
                     />
                     {showHireModal && (
-                        <HireStaffModal
-                            showHireModal={showHireModal}
-                            setShowHireModal={setShowHireModal}
-                            formData={formData}
-                            setFormData={setFormData}
-                            handleHire={handleHireSubmit}
-                            activeDropdown={activeDropdown}
-                            setActiveDropdown={setActiveDropdown}
-                            insertTag={insertTag}
-                            libraryItems={libraryItems}
-                            departments={departments}
-                            handleInputChange={handleInputChange}
+                        <HireFromPoolModal
+                            show={showHireModal}
+                            onClose={() => setShowHireModal(false)}
+                            companyId={currentCompany?.id}
                         />
                     )}
                     {showEditModal && (

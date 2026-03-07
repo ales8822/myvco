@@ -15,11 +15,13 @@ export default function HireStaffModal({
     libraryItems,
     departments,
     handleInputChange,
+    title = "Hire New Staff Member",
+    submitLabel = "Hire Staff"
 }) {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
             <div className="bg-white rounded-xl p-8 max-w-md w-full my-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Hire New Staff Member</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
                 <form onSubmit={handleHire}>
                     <div className="mb-4">
                         <label className="label">Name *</label>
@@ -128,7 +130,7 @@ export default function HireStaffModal({
                         </select>
                     </div>
                     <div className="flex gap-3">
-                        <button type="submit" className="btn-primary flex-1">Hire Staff</button>
+                        <button type="submit" className="btn-primary flex-1">{submitLabel}</button>
                         <button
                             type="button"
                             onClick={() => {

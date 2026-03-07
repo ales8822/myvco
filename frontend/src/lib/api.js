@@ -34,9 +34,13 @@ export const departmentsApi = {
 export const staffApi = {
   list: (companyId, isActive = true) =>
     api.get(`/staff/companies/${companyId}/staff?is_active=${isActive}`),
+  listGlobal: () => api.get("/staff/global"),
   get: (id) => api.get(`/staff/${id}`),
   create: (companyId, data) =>
     api.post(`/staff/companies/${companyId}/staff`, data),
+  createGlobal: (data) => api.post("/staff/", data),
+  hire: (staffId, companyId) => api.post(`/staff/${staffId}/hire/${companyId}`),
+  fire: (staffId) => api.post(`/staff/${staffId}/fire`),
   update: (id, data) => api.put(`/staff/${id}`, data),
   delete: (id, reason) => api.delete(`/staff/${id}`, { params: { reason } }),
   restore: (id, data) => api.post(`/staff/${id}/restore`, data),

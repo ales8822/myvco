@@ -6,14 +6,14 @@ import { useDepartmentStore } from '../../../stores/departmentStore';
 
 export function useStaffActions() {
     const { currentCompany } = useCompanyStore();
-    const { hireStaff, updateStaff, removeStaff, restoreStaff } = useStaffStore();
+    const { hireStaff, updateStaff, removeStaff, restoreStaff, unassignStaff } = useStaffStore();
     const { fetchDepartments } = useDepartmentStore();
 
     const handleHire = async (formData) => {
         if (!currentCompany) return;
         const staffData = {
             ...formData,
-            expertise: formData.expertise.split(',').map((e) => e.trim()),
+            expertise: formData.expertise.split(',').map((e) => e.trim()).filter(Boolean),
         };
         await hireStaff(currentCompany.id, staffData);
         // Refresh data if needed (could be done by caller)
@@ -29,8 +29,8 @@ export function useStaffActions() {
     };
 
     const handleFire = async (staffId) => {
-        if (window.confirm('Are you sure you want to fire this staff member?')) {
-            await removeStaff(staffId);
+        if (window.confirm('Are you sure you want to fire this agent? they will return to the global pool.')) {
+            await unassignStaff(staffId, currentCompany.id);
         }
     };
 

@@ -6,7 +6,8 @@ import StaffManagement from './pages/StaffManagement';
 import MeetingRoom from './pages/MeetingRoom';
 import KnowledgeBase from './pages/KnowledgeBase';
 import Settings from './pages/Settings';
-import PrototypeLibrary from './pages/PrototypeLibrary'; // Import the Library page
+import PrototypeLibrary from './pages/PrototypeLibrary';
+import GlobalStaffPool from './pages/GlobalStaffPool';
 
 function App() {
     const { currentCompany } = useCompanyStore();
@@ -42,6 +43,10 @@ function App() {
                 <Route 
                     path="/library" 
                     element={<PrototypeLibrary />} 
+                />
+                <Route 
+                    path="/agent-factory" 
+                    element={<GlobalStaffPool />} 
                 />
             </Routes>
         </BrowserRouter>

@@ -10,7 +10,7 @@ class Staff(Base):
     __tablename__ = "staff"
     
     id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    # Removing company_id for many-to-many 
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     name = Column(String, index=True)
     role = Column(String)
@@ -23,6 +23,6 @@ class Staff(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    company = relationship("Company", back_populates="staff")
+    companies = relationship("Company", secondary="company_staff", back_populates="staff")
     department = relationship("Department", back_populates="staff")
     meeting_participations = relationship("MeetingParticipant", back_populates="staff")

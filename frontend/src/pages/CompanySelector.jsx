@@ -53,8 +53,17 @@ export default function CompanySelector() {
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
             <div className="container mx-auto px-4 py-16 relative">
 
-                {/* Global Actions (Settings & Library) */}
+                {/* Global Actions (Settings, Library, Agent Factory) */}
                 <div className="absolute top-6 right-6 flex gap-3">
+                    <button
+                        onClick={() => navigate('/agent-factory')}
+                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        title="Global Agent Factory"
+                    >
+                        <span className="text-xl">🤖</span>
+                        <span className="text-sm font-medium">Agents</span>
+                    </button>
+
                     <button
                         onClick={() => navigate('/library')}
                         className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
