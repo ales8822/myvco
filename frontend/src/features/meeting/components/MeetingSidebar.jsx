@@ -10,7 +10,7 @@ export default function MeetingSidebar({
     showActionItems
 }) {
     return (
-        <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
+        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 overflow-y-auto transition-colors">
             <div className="mb-6">
                 <ImageSidebarPanel
                     meetingId={parseInt(meetingId)}
@@ -21,7 +21,7 @@ export default function MeetingSidebar({
                 />
             </div>
             <div className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Participants ({participantStaff.length})</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Participants ({participantStaff.length})</h3>
                 <div className="space-y-3">
                     {participantStaff.map((member) => {
                         const participantInfo = currentMeeting?.participants?.find(
@@ -33,8 +33,8 @@ export default function MeetingSidebar({
                                     <span className="text-sm font-bold text-white">{member.name.charAt(0).toUpperCase()}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900 text-sm truncate">{member.name}</p>
-                                    <p className="text-xs text-gray-600 truncate">{member.role}</p>
+                                    <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{member.name}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{member.role}</p>
                                     {participantInfo?.department_name && (
                                         <p className="text-xs text-gray-500 truncate">📂 {participantInfo.department_name}</p>
                                     )}

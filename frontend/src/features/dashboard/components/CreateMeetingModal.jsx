@@ -12,9 +12,9 @@ export default function CreateMeetingModal({
     if (!showMeetingModal) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl p-8 max-w-2xl w-full my-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Start New Meeting</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full my-8 shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Start New Meeting</h2>
                 <form onSubmit={handleCreateMeeting}>
                     <div className="grid grid-cols-2 gap-6 mb-6">
                         <div>
@@ -44,13 +44,13 @@ export default function CreateMeetingModal({
 
                     <div className="mb-6">
                         <label className="label">Select Participants & Assign Intelligence</label>
-                        <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                        <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                             {staff.map((member) => {
                                 const participant = meetingForm.participants.find(p => p.staff_id === member.id);
                                 const isSelected = !!participant;
 
                                 return (
-                                    <div key={member.id} className={`p-4 rounded-lg border transition-all ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                                    <div key={member.id} className={`p-4 rounded-lg border transition-all ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="flex items-center gap-3 cursor-pointer">
                                                 <input
@@ -67,11 +67,11 @@ export default function CreateMeetingModal({
                                         </div>
 
                                         {isSelected && (
-                                            <div className="ml-8 grid grid-cols-2 gap-4 mt-3 bg-white p-3 rounded border border-gray-200">
+                                            <div className="ml-8 grid grid-cols-2 gap-4 mt-3 bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600">
                                                 <div>
-                                                    <label className="text-xs font-medium text-gray-500 mb-1 block">LLM Provider</label>
+                                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">LLM Provider</label>
                                                     <select
-                                                        className="w-full text-sm border-gray-300 rounded-md"
+                                                        className="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md"
                                                         value={participant.llm_provider}
                                                         onChange={(e) => updateParticipantConfig(member.id, 'llm_provider', e.target.value)}
                                                     >
@@ -82,9 +82,9 @@ export default function CreateMeetingModal({
 
                                                 {participant.llm_provider === 'ollama' && (
                                                     <div>
-                                                        <label className="text-xs font-medium text-gray-500 mb-1 block">Model</label>
+                                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Model</label>
                                                         <select
-                                                            className="w-full text-sm border-gray-300 rounded-md"
+                                                            className="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md"
                                                             value={participant.llm_model}
                                                             onChange={(e) => updateParticipantConfig(member.id, 'llm_model', e.target.value)}
                                                         >

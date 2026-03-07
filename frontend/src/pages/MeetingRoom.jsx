@@ -151,7 +151,7 @@ export default function MeetingRoom() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50">
+            <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
                 <MeetingHeader
                     currentMeeting={currentMeeting}
                     participantStaff={participantStaff}
@@ -215,10 +215,10 @@ export default function MeetingRoom() {
 
             {/* End Meeting Modal */}
             {showEndModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">End Meeting & Generate Summary</h2>
-                        <p className="text-gray-600 mb-6">Choose the intelligence that will generate your meeting summary.</p>
+                <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">End Meeting & Generate Summary</h2>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Choose the intelligence that will generate your meeting summary.</p>
 
                         <div className="mb-4">
                             <label className="label">LLM Provider</label>
@@ -259,7 +259,7 @@ export default function MeetingRoom() {
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setShowEndModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                                 disabled={isEnding}
                             >
                                 Cancel

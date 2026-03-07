@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useCompanyStore } from './stores/companyStore';
+import { useThemeStore } from './stores/themeStore';
 import CompanySelector from './pages/CompanySelector';
 import CompanyDashboard from './pages/CompanyDashboard';
 import StaffManagement from './pages/StaffManagement';
@@ -11,6 +13,15 @@ import GlobalStaffPool from './pages/GlobalStaffPool';
 
 function App() {
     const { currentCompany } = useCompanyStore();
+    const { theme } = useThemeStore();
+
+    useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
 
     return (
         <BrowserRouter>

@@ -21,13 +21,13 @@ export default function LibraryList({
     return (
         <>
             <div className="mb-6 relative">
-                <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+                <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5 transition-colors" />
                 <input
                     type="text"
                     placeholder="Search modules..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
             </div>
 
@@ -74,14 +74,14 @@ export default function LibraryList({
 
 function LibraryItemCard({ item, handleEdit, handleDelete }) {
     return (
-        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-purple-500/50 transition-colors group">
+        <div className="card h-full flex flex-col group hover:border-purple-500/50 transition-all duration-200">
             <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="bg-purple-900/30 text-purple-400 px-2 py-1 rounded text-xs font-mono">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-mono font-bold">
                         @{item.slug}
                     </span>
                     {item.category === 'knowledge' && (
-                        <span className="bg-amber-900/30 text-amber-400 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-tighter">
+                        <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-tighter">
                             Knowledge
                         </span>
                     )}
@@ -89,23 +89,25 @@ function LibraryItemCard({ item, handleEdit, handleDelete }) {
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => handleEdit(item)}
-                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                        className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Edit Module"
                     >
                         <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded"
+                        className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Delete Module"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
             </div>
-            <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
-            <p className="text-gray-400 text-sm line-clamp-2 mb-4">
+            <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">{item.name}</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-4">
                 {item.description || "No description provided."}
             </p>
-            <div className="text-xs text-gray-500 font-mono bg-gray-900/50 p-2 rounded truncate">
+            <div className="mt-auto text-xs text-gray-500 dark:text-gray-500 font-mono bg-gray-50 dark:bg-gray-900/50 p-2 rounded border border-gray-100 dark:border-gray-800 truncate transition-colors">
                 {item.content.substring(0, 50)}...
             </div>
         </div>

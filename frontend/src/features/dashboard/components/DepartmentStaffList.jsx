@@ -19,7 +19,7 @@ export default function DepartmentStaffList({
                     >
                         ← Back to Departments
                     </button>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                         {selectedDepartment.name} - Staff
                     </h2>
                     {departmentStaff.length === 0 ? (
@@ -31,14 +31,14 @@ export default function DepartmentStaffList({
                                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleEditStaff(member); }}
-                                            className="p-1.5 bg-white text-blue-600 hover:bg-blue-50 rounded shadow-sm border border-gray-200"
+                                            className="p-1.5 bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded shadow-sm border border-gray-200 dark:border-gray-600 transition-colors"
                                             title="Edit Staff"
                                         >
                                             ✏️
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleFireClick(member); }}
-                                            className="p-1.5 bg-white text-red-600 hover:bg-red-50 rounded shadow-sm border border-gray-200"
+                                            className="p-1.5 bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded shadow-sm border border-gray-200 dark:border-gray-600 transition-colors"
                                             title="Fire Staff"
                                         >
                                             🔥
@@ -51,14 +51,14 @@ export default function DepartmentStaffList({
                                             </span>
                                         </div>
                                     </div>
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                                         {member.name}
                                     </h3>
                                     <p className="text-primary-600 font-medium mb-3">
                                         {member.role}
                                     </p>
                                     {member.personality && (
-                                        <p className="text-sm text-gray-600 mb-3">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                             {member.personality}
                                         </p>
                                     )}
@@ -72,7 +72,7 @@ export default function DepartmentStaffList({
                                             {member.expertise.map((skill, idx) => (
                                                 <span
                                                     key={idx}
-                                                    className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                                                    className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded"
                                                 >
                                                     {skill}
                                                 </span>

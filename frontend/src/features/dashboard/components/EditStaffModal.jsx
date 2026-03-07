@@ -1,12 +1,12 @@
 import { BookOpen, X } from 'lucide-react';
 
 const QuickAddDropdown = ({ onSelect, setActiveDropdown, libraryItems }) => (
-    <div className="absolute right-0 top-8 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
-        <div className="p-2 text-xs font-semibold text-gray-500 border-b border-gray-100 flex justify-between items-center">
+    <div className="absolute right-0 top-8 w-64 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+        <div className="p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
             <span>Quick Add Module</span>
             <button
                 onClick={() => setActiveDropdown(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
                 <X className="w-3 h-3" />
             </button>
@@ -19,7 +19,7 @@ const QuickAddDropdown = ({ onSelect, setActiveDropdown, libraryItems }) => (
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.slug)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 hover:text-purple-700 flex items-center justify-between group/item transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 flex items-center justify-between group/item transition-colors text-gray-700 dark:text-gray-200"
                 >
                     <span className="font-mono">@{item.slug}</span>
                 </button>
@@ -44,9 +44,9 @@ export default function EditStaffModal({
     if (!showEditModal) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Staff Member</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit Staff Member</h2>
                 <form onSubmit={handleUpdateStaff}>
                     <div className="mb-4">
                         <label className="label">Name</label>
@@ -90,7 +90,7 @@ export default function EditStaffModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'personality' ? null : 'personality')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium flex items-center gap-1 transition-colors"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>

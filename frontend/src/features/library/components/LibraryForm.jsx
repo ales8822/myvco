@@ -10,14 +10,14 @@ export default function LibraryForm({
     setIsEditing
 }) {
     return (
-        <div className="flex-1 overflow-y-auto bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 transition-colors">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {currentItem ? "Edit Module" : "New Module"}
                 </h2>
                 <button
                     onClick={() => setIsEditing(false)}
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                     <X className="w-6 h-6" />
                 </button>
@@ -49,7 +49,7 @@ export default function LibraryForm({
                                 required
                                 value={formData.slug}
                                 onChange={(e) => setFormData({ ...formData, slug: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg pl-8 pr-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                                 placeholder="coding_manifesto"
                             />
                         </div>
@@ -90,27 +90,27 @@ export default function LibraryForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Description (Internal)
                     </label>
                     <input
                         type="text"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         placeholder="Short description of what this module does..."
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Content (The Prompt/Knowledge)
                     </label>
                     <textarea
                         required
                         value={formData.content}
                         onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                        className="w-full h-96 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-sm focus:outline-none focus:border-purple-500"
+                        className="w-full h-96 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         placeholder="Paste the full manifesto, rulebook, or knowledge base here..."
                     />
                 </div>
@@ -119,7 +119,7 @@ export default function LibraryForm({
                     <button
                         type="button"
                         onClick={() => setIsEditing(false)}
-                        className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                        className="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
                         Cancel
                     </button>

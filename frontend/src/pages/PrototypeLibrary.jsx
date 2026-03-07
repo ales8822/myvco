@@ -69,7 +69,7 @@ const PrototypeLibrary = () => {
     };
 
     return (
-        <div className="h-full flex flex-col bg-gray-900 text-gray-100 p-6 overflow-hidden min-h-screen">
+        <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 overflow-hidden min-h-screen transition-colors">
             <LibraryHeader
                 navigate={navigate}
                 handleCreate={handleCreate}

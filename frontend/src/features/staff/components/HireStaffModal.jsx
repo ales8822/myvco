@@ -19,9 +19,9 @@ export default function HireStaffModal({
     submitLabel = "Hire Staff"
 }) {
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl p-8 max-w-md w-full my-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full my-8 shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{title}</h2>
                 <form onSubmit={handleHire}>
                     <div className="mb-4">
                         <label className="label">Name *</label>
@@ -77,7 +77,7 @@ export default function HireStaffModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'knowledge_base' ? null : 'knowledge_base')}
-                                className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+                                className="text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400 font-medium flex items-center gap-1 transition-colors"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -89,7 +89,7 @@ export default function HireStaffModal({
                             />
                         )}
                         <textarea
-                            className="input border-amber-100 focus:border-amber-500"
+                            className="input border-amber-100 dark:border-amber-900/30 focus:border-amber-500 dark:focus:border-amber-500"
                             rows="3"
                             value={formData.knowledge_base}
                             onChange={(e) => handleInputChange('knowledge_base', e.target.value)}
@@ -103,7 +103,7 @@ export default function HireStaffModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'personality' ? null : 'personality')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium flex items-center gap-1 transition-colors"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -129,7 +129,7 @@ export default function HireStaffModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'expertise' ? null : 'expertise')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium flex items-center gap-1 transition-colors"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -149,16 +149,16 @@ export default function HireStaffModal({
                         />
                     </div>
                     {/* Department */}
-                    <div className="mb-4">
-                        <label className="label">Department</label>
+                    <div className="mb-6">
+                        <label className="label text-gray-700 dark:text-gray-300">Department</label>
                         <select
-                            className="input"
+                            className="input dark:bg-gray-700"
                             value={formData.department_id}
                             onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? parseInt(e.target.value) : '' })}
                         >
-                            <option value="">No Department</option>
+                            <option value="" className="dark:bg-gray-800">No Department</option>
                             {departments.map((dept) => (
-                                <option key={dept.id} value={dept.id}>
+                                <option key={dept.id} value={dept.id} className="dark:bg-gray-800">
                                     {dept.name}
                                 </option>
                             ))}

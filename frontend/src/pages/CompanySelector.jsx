@@ -2,12 +2,27 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompanyStore } from '../stores/companyStore';
+import { useThemeStore } from '../stores/themeStore';
+import { Sun, Moon } from 'lucide-react';
 
 export default function CompanySelector() {
     const navigate = useNavigate();
     const { companies, fetchCompanies, selectCompany, createCompany, deleteCompany, archiveCompany, loading } =
         useCompanyStore();
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    const ThemeToggle = () => {
+        const { theme, toggleTheme } = useThemeStore();
+        return (
+            <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+                title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+        );
+    };
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -50,14 +65,14 @@ export default function CompanySelector() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-colors">
             <div className="container mx-auto px-4 py-16 relative">
 
-                {/* Global Actions (Settings, Library, Agent Factory) */}
+                {/* Global Actions (Settings, Library, Agent Factory, Theme Toggle) */}
                 <div className="absolute top-6 right-6 flex gap-3">
                     <button
                         onClick={() => navigate('/agent-factory')}
-                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
                         title="Global Agent Factory"
                     >
                         <span className="text-xl">🤖</span>
@@ -66,7 +81,7 @@ export default function CompanySelector() {
 
                     <button
                         onClick={() => navigate('/library')}
-                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
                         title="Global Prototype Library"
                     >
                         <span className="text-xl">📚</span>
@@ -75,26 +90,28 @@ export default function CompanySelector() {
 
                     <button
                         onClick={() => navigate('/settings')}
-                        className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors bg-white/50 px-3 py-2 rounded-lg hover:bg-white shadow-sm"
+                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
                         title="Application Settings"
                     >
                         <span className="text-xl">⚙️</span>
                         <span className="text-sm font-medium">Settings</span>
                     </button>
+
+                    <ThemeToggle />
                 </div>
 
                 <div className="text-center mb-12">
-                    <h1 className="text-5xl font-bold text-gray-900 mb-4">
+                    <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
                         Welcome to <span className="text-primary-600">MyVCO</span>
                     </h1>
-                    <p className="text-xl text-gray-600">
+                    <p className="text-xl text-gray-600 dark:text-gray-400">
                         Your Virtual Company with AI-Powered Staff
                     </p>
                 </div>
 
                 <div className="max-w-6xl mx-auto">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-2xl font-semibold text-gray-800">
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
                             Select a Company
                         </h2>
                         <button
@@ -111,7 +128,7 @@ export default function CompanySelector() {
                         </div>
                     ) : companies.length === 0 ? (
                         <div className="card text-center py-12">
-                            <p className="text-gray-600 mb-4">
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">
                                 No companies yet. Create your first virtual company!
                             </p>
                             <button
@@ -127,39 +144,39 @@ export default function CompanySelector() {
                                 <div
                                     key={company.id}
                                     onClick={() => handleSelectCompany(company.id)}
-                                    className="card hover:shadow-lg transition-shadow cursor-pointer group relative"
+                                    className="card hover:shadow-lg transition-all cursor-pointer group relative"
                                 >
-                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                         <button
                                             onClick={(e) => handleArchive(e, company.id)}
-                                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                                             title="Archive Company"
                                         >
                                             📥
                                         </button>
                                         <button
                                             onClick={(e) => handleDelete(e, company.id)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            className="p-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                             title="Delete Company"
                                         >
                                             🗑️
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg mb-4 group-hover:scale-110 transition-transform">
+                                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg mb-4 group-hover:scale-110 transition-transform shadow-inner">
                                         <span className="text-2xl font-bold text-white">
                                             {company.name.charAt(0).toUpperCase()}
                                         </span>
                                     </div>
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                                         {company.name}
                                     </h3>
                                     {company.industry && (
-                                        <p className="text-sm text-primary-600 mb-2">
+                                        <p className="text-sm text-primary-600 dark:text-primary-400 mb-2">
                                             {company.industry}
                                         </p>
                                     )}
-                                    <p className="text-gray-600 text-sm line-clamp-2">
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
                                         {company.description || 'No description'}
                                     </p>
                                 </div>
@@ -171,9 +188,9 @@ export default function CompanySelector() {
 
             {/* Create Company Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                             Create New Company
                         </h2>
                         <form onSubmit={handleCreateCompany}>

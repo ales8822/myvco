@@ -8,12 +8,12 @@ export default function MeetingHeader({
     onEndMeetingClick
 }) {
     return (
-        <div className="bg-white border-b border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 transition-colors">
             <Breadcrumbs items={[{ label: 'Dashboard', path: '/dashboard' }, { label: currentMeeting?.title || 'Meeting' }]} />
             <div className="flex justify-between items-center mt-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{currentMeeting?.title}</h1>
-                    <p className="text-sm text-gray-600">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{currentMeeting?.title}</h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         {currentMeeting?.meeting_type} • {currentMeeting?.status === 'active' ? <span className="text-green-600">Active</span> : <span className="text-gray-600">Ended</span>} • {participantStaff.length} participants
                     </p>
                 </div>

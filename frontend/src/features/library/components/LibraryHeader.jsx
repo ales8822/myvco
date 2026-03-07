@@ -8,7 +8,7 @@ export default function LibraryHeader({ navigate, handleCreate, isEditing }) {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     title="Go Back"
                 >
                     <ArrowLeft className="w-6 h-6" />
@@ -18,7 +18,7 @@ export default function LibraryHeader({ navigate, handleCreate, isEditing }) {
                         <Book className="w-6 h-6 text-purple-400" />
                         Prototype Library
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                         Manage reusable knowledge modules for your AI staff.
                     </p>
                 </div>

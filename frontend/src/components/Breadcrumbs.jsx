@@ -9,7 +9,7 @@ export default function Breadcrumbs({ items }) {
                 <li className="inline-flex items-center">
                     <Link
                         to="/"
-                        className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-primary-600"
+                        className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-primary-600"
                     >
                         <span className="mr-1">🏠</span> Companies
                     </Link>
@@ -22,12 +22,12 @@ export default function Breadcrumbs({ items }) {
                             {item.path ? (
                                 <Link
                                     to={item.path}
-                                    className="text-sm font-medium text-gray-500 hover:text-primary-600"
+                                    className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-primary-600"
                                 >
                                     {item.label}
                                 </Link>
                             ) : (
-                                <span className="text-sm font-medium text-gray-900">
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
                                     {item.label}
                                 </span>
                             )}

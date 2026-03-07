@@ -129,7 +129,7 @@ export default function MeetingInput({
     };
 
     return (
-        <div className="bg-white border-t border-gray-200 p-6 relative">
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 relative transition-colors">
             {showImageUpload ? (
                 <div className="mb-4">
                     <ImageUpload onImageSelect={() => { }} onUpload={handleImageUpload} />
@@ -147,14 +147,14 @@ export default function MeetingInput({
                     <div className="flex gap-3 relative items-end">
                         {/* Autocomplete Dropdown */}
                         {showMentionDropdown && filteredMentions.length > 0 && (
-                            <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+                            <div className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                                 {filteredMentions.map((mention, index) => (
                                     <div
                                         key={mention.id}
-                                        className={`p-2 flex items-center gap-2 cursor-pointer ${index === selectedMentionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                        className={`p-2 flex items-center gap-2 cursor-pointer ${index === selectedMentionIndex ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-600'}`}
                                         onClick={() => selectMention(mention, inputRef)}
                                     >
-                                        <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+                                        <div className="w-8 h-8 flex-shrink-0 bg-gray-100 dark:bg-gray-600 rounded flex items-center justify-center overflow-hidden">
                                             {mention.type === 'image' || (mention.type === 'asset' && mention.url) ? (
                                                 <img src={mention.url} alt="" className="w-full h-full object-cover" />
                                             ) : (
@@ -162,8 +162,8 @@ export default function MeetingInput({
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm text-gray-900 truncate">{mention.display}</div>
-                                            {mention.description && <div className="text-xs text-gray-500 truncate">{mention.description}</div>}
+                                            <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{mention.display}</div>
+                                            {mention.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{mention.description}</div>}
                                         </div>
                                     </div>
                                 ))}
@@ -184,19 +184,19 @@ export default function MeetingInput({
                         <button
                             type="button"
                             onClick={insertCodeBlock}
-                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 border border-gray-200 font-mono text-sm font-bold"
+                            className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 font-mono text-sm font-bold transition-colors"
                             disabled={isStreaming}
                             title="Insert Code Block"
                         >
                             &lt;/&gt;
                         </button>
                         
-                        <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" disabled={isStreaming}>🖼️</button>
+                        <button type="button" onClick={() => setShowImageUpload(true)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" disabled={isStreaming}>🖼️</button>
                         
                         <button 
                             type="button" 
                             onClick={handlePreviewClick} 
-                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 flex items-center justify-center relative group" 
+                            className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 flex items-center justify-center relative group transition-colors" 
                             disabled={isStreaming || !inputMessage.trim() || !selectedStaffId || isFetchingPreview}
                             title="Preview Prompt"
                         >
@@ -226,13 +226,13 @@ export default function MeetingInput({
                         {/* Autonomous / File System Group */}
                         <div className="flex items-center relative">
                             {showPathInput && (
-                                <div className="absolute bottom-full right-0 mb-2 bg-white p-3 rounded-lg shadow-xl border border-gray-200 flex flex-col gap-2 w-72 animate-in fade-in slide-in-from-bottom-2 z-50">
+                                <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 flex flex-col gap-2 w-72 animate-in fade-in slide-in-from-bottom-2 z-50">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-xs font-semibold text-gray-700">Target Project Path:</label>
+                                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Target Project Path:</label>
                                         <button 
                                             type="button" 
                                             onClick={openBrowser}
-                                            className="text-[10px] bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-blue-600 flex items-center gap-1"
+                                            className="text-[10px] bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-2 py-1 rounded text-blue-600 dark:text-blue-400 flex items-center gap-1 transition-colors"
                                         >
                                             <Folder size={10} /> Browse
                                         </button>
@@ -267,37 +267,37 @@ export default function MeetingInput({
                             {/* Folder Browser Modal */}
                             {showBrowser && (
                                 <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center">
-                                    <div className="bg-white rounded-lg w-96 max-h-[80vh] flex flex-col shadow-2xl">
-                                        <div className="p-3 border-b border-gray-200 font-bold bg-gray-50 flex justify-between items-center">
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg w-96 max-h-[80vh] flex flex-col shadow-2xl border border-transparent dark:border-gray-700">
+                                        <div className="p-3 border-b border-gray-200 dark:border-gray-700 font-bold bg-gray-50 dark:bg-gray-700 flex justify-between items-center text-gray-900 dark:text-white">
                                             <span>Select Folder</span>
-                                            <button onClick={() => setShowBrowser(false)} className="text-gray-500">✕</button>
+                                            <button onClick={() => setShowBrowser(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white">✕</button>
                                         </div>
-                                        <div className="p-2 bg-gray-100 text-xs font-mono break-all border-b border-gray-200">
+                                        <div className="p-2 bg-gray-100 dark:bg-gray-700 text-xs font-mono break-all border-b border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-200">
                                             {currentPath}
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-2">
                                             <div className="mb-2 flex flex-wrap gap-2">
                                                 {drives.map(d => (
-                                                    <button key={d} onClick={() => loadDirectory(d)} className="px-2 py-1 bg-gray-200 text-xs rounded hover:bg-gray-300 flex items-center gap-1">
+                                                    <button key={d} onClick={() => loadDirectory(d)} className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-500 flex items-center gap-1 text-gray-900 dark:text-gray-200 transition-colors">
                                                         <HardDrive size={12} /> {d}
                                                     </button>
                                                 ))}
                                             </div>
-                                            <button onClick={() => loadDirectory(currentPath + '/..')} className="w-full text-left px-2 py-1.5 hover:bg-blue-50 rounded text-sm text-blue-600 mb-1">
+                                            <button onClick={() => loadDirectory(currentPath + '/..')} className="w-full text-left px-2 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-sm text-blue-600 dark:text-blue-400 mb-1 transition-colors">
                                                 📁 .. (Up)
                                             </button>
                                             {directories.map(dir => (
                                                 <button 
                                                     key={dir} 
                                                     onClick={() => loadDirectory(currentPath + (currentPath.endsWith(window.navigator.platform.includes("Win") ? "\\" : "/") ? "" : (window.navigator.platform.includes("Win") ? "\\" : "/")) + dir)}
-                                                    className="w-full text-left px-2 py-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-2"
+                                                    className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm flex items-center gap-2 text-gray-900 dark:text-gray-200 transition-colors"
                                                 >
                                                     <Folder size={14} className="text-yellow-500" /> {dir}
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="p-3 border-t border-gray-200 flex justify-end gap-2">
-                                            <button onClick={() => setShowBrowser(false)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                                        <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                                            <button onClick={() => setShowBrowser(false)} className="px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">Cancel</button>
                                             <button onClick={handleSelectFolder} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Select Current</button>
                                         </div>
                                     </div>

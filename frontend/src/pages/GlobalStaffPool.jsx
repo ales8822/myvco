@@ -95,12 +95,12 @@ export default function GlobalStaffPool() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="ml-64 flex-1 p-8 bg-gray-50 min-h-screen">
+            <div className="ml-64 flex-1 p-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Agent Factory</h1>
-                            <p className="text-gray-600">Create and manage global AI agents available for hire.</p>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Agent Factory</h1>
+                            <p className="text-gray-600 dark:text-gray-400">Create and manage global AI agents available for hire.</p>
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
@@ -112,48 +112,48 @@ export default function GlobalStaffPool() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {globalStaff.map((agent) => (
-                            <div key={agent.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <div key={agent.id} className="card h-full flex flex-col group hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-gray-900">{agent.name}</h3>
-                                        <p className="text-primary-600 font-medium mb-2">{agent.role}</p>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">{agent.name}</h3>
+                                        <p className="text-primary-600 dark:text-primary-400 font-medium mb-2">{agent.role}</p>
                                     </div>
                                     {agent.companies.length > 0 && (
-                                        <div className="bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-full uppercase font-bold tracking-wider">
+                                        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] px-2 py-1 rounded-full uppercase font-bold tracking-wider">
                                             Hired
                                         </div>
                                     )}
                                 </div>
                                 
-                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{agent.personality}</p>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{agent.personality}</p>
                                 <div className="flex flex-wrap gap-2 mb-6">
                                     {agent.expertise?.map((skill, i) => (
-                                        <span key={i} className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                                        <span key={i} className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded">
                                             {skill}
                                         </span>
                                     ))}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="mt-auto flex gap-2">
                                     <button 
                                         onClick={() => openEditModal(agent)}
-                                        className="flex-1 text-gray-600 hover:bg-gray-50 border border-gray-200 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        className="flex-1 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 py-2 rounded-lg text-sm font-medium transition-colors"
                                     >
                                         Edit
                                     </button>
                                     <button 
                                         onClick={() => removeStaff(agent.id)}
-                                        className="flex-1 text-red-600 hover:bg-red-50 border border-red-100 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        className="flex-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-100 dark:border-red-900/30 py-2 rounded-lg text-sm font-medium transition-colors"
                                     >
                                         Delete
                                     </button>
                                 </div>
                                 
                                 {agent.companies.length > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Hired by:</p>
                                         <div className="flex flex-wrap gap-1">
                                             {agent.companies.map(c => (
-                                                <span key={c.id} className="bg-gray-50 text-gray-600 text-[10px] px-2 py-1 rounded border border-gray-100">
+                                                <span key={c.id} className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 text-[10px] px-2 py-1 rounded border border-gray-100 dark:border-gray-700">
                                                     {c.name}
                                                 </span>
                                             ))}
@@ -165,8 +165,8 @@ export default function GlobalStaffPool() {
                     </div>
 
                     {globalStaff.length === 0 && (
-                        <div className="text-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-200">
-                            <p className="text-gray-500 text-lg">No unassigned agents available.</p>
+                        <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 transition-colors">
+                            <p className="text-gray-500 dark:text-gray-400 text-lg">No unassigned agents available.</p>
                             <button 
                                 onClick={() => {
                                     setFormData({ name: '', role: '', personality: '', expertise: '', system_prompt: '', knowledge_base: '' });
