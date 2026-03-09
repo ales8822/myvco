@@ -17,7 +17,7 @@ const ImageGallery = ({ images, onInsertMention }) => {
                         <button
                             key={img.id}
                             onClick={() => onInsertMention(mentionLabel)}
-                            className="group relative flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-1 pr-3 transition-colors"
+                            className="group relative flex items-center gap-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-700 rounded-lg p-1 pr-3"
                             title={img.description || "No description"}
                         >
                             <div className="w-10 h-10 rounded overflow-hidden bg-gray-900">
@@ -28,7 +28,7 @@ const ImageGallery = ({ images, onInsertMention }) => {
                                 />
                             </div>
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold text-blue-400">{mentionLabel}</span>
+                                <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{mentionLabel}</span>
                                 <span className="text-[10px] text-gray-400 truncate max-w-[100px]">
                                     {img.description ? img.description.substring(0, 15) + (img.description.length > 15 ? '...' : '') : 'Image'}
                                 </span>

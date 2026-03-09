@@ -13,7 +13,7 @@ export default function KnowledgeList({ knowledge, loading, handleDeleteKnowledg
     if (knowledge.length === 0) {
         return (
             <div className="card text-center py-12">
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 dark:text-neutral-400 mb-4">
                     No knowledge entries yet. Add your first entry!
                 </p>
                 <button
@@ -31,7 +31,7 @@ export default function KnowledgeList({ knowledge, loading, handleDeleteKnowledg
             {knowledge.map((entry) => (
                 <div key={entry.id} className="card">
                     <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-xl font-semibold text-gray-900">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-neutral-400">
                             {entry.title}
                         </h3>
                         <button
@@ -41,15 +41,15 @@ export default function KnowledgeList({ knowledge, loading, handleDeleteKnowledg
                             Delete
                         </button>
                     </div>
-                    <p className="text-gray-700 mb-3 whitespace-pre-wrap max-h-60 overflow-y-auto border border-gray-100 p-3 rounded bg-gray-50">
+                    <p className="text-gray-700 dark:text-neutral-700 mb-3 whitespace-pre-wrap max-h-60 overflow-y-auto border border-gray-100 p-3 rounded bg-gray-50">
                         {entry.content}
                     </p>
                     {entry.source && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-neutral-400">
                             Source: {entry.source}
                         </p>
                     )}
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-400 dark:text-neutral-800  mt-2">
                         Added {new Date(entry.created_at).toLocaleDateString()}
                     </p>
                 </div>

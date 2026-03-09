@@ -94,7 +94,7 @@ export default function DepartmentView({ companyId, onDepartmentClick }) {
                     {departments.map((department) => (
                         <div
                             key={department.id}
-                            className="card hover:shadow-lg transition-shadow cursor-pointer group"
+                            className="card hover:shadow-lg transition-shadow cursor-pointer group dark:bg-neutral-900 dark:border-neutral-800"
                             onClick={() => onDepartmentClick && onDepartmentClick(department)}
                         >
                             <div className="flex justify-between items-start mb-4">
@@ -112,7 +112,7 @@ export default function DepartmentView({ companyId, onDepartmentClick }) {
                                             e.stopPropagation();
                                             handleEdit(department);
                                         }}
-                                        className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                        className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-neutral-800 rounded transition-colors"
                                     >
                                         ✏️
                                     </button>
@@ -141,8 +141,8 @@ export default function DepartmentView({ companyId, onDepartmentClick }) {
 
             {/* Add/Edit Department Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+                <div className="fixed inset-0 bg-black/60 bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-neutral-900 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-neutral-800 transition-colors">
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                             {editingDepartment ? 'Edit Department' : 'Add Department'}
                         </h2>

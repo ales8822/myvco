@@ -20,24 +20,24 @@ export default function HireStaffModal({
 }) {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm transition-all">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full my-8 shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+            <div className="bg-white dark:bg-neutral-900 rounded-xl p-8 max-w-md w-full my-8 shadow-2xl border border-transparent dark:border-neutral-800 transition-colors">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{title}</h2>
                 <form onSubmit={handleHire}>
                     <div className="mb-4">
-                        <label className="label">Name *</label>
+                        <label className="label font-bold text-primary-600 dark:text-primary-400">Name *</label>
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
                         />
                     </div>
                     <div className="mb-4">
-                        <label className="label">Role *</label>
+                        <label className="label font-bold text-primary-600 dark:text-primary-400">Role *</label>
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={formData.role}
                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                             placeholder="e.g., CEO, Developer, Designer"
@@ -63,7 +63,7 @@ export default function HireStaffModal({
                             />
                         )}
                         <textarea
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             rows="3"
                             value={formData.system_prompt}
                             onChange={(e) => handleInputChange('system_prompt', e.target.value)}
@@ -115,7 +115,7 @@ export default function HireStaffModal({
                             />
                         )}
                         <textarea
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             rows="2"
                             value={formData.personality}
                             onChange={(e) => handleInputChange('personality', e.target.value)}
@@ -142,7 +142,7 @@ export default function HireStaffModal({
                         )}
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={formData.expertise}
                             onChange={(e) => handleInputChange('expertise', e.target.value)}
                             placeholder="e.g., Python, React, Marketing"

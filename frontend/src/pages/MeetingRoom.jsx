@@ -151,7 +151,7 @@ export default function MeetingRoom() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            <div className="ml-64 flex-1 flex flex-col h-screen bg-gray-50 dark:bg-neutral-950 dark:border-neutral-800 transition-colors">
                 <MeetingHeader
                     currentMeeting={currentMeeting}
                     participantStaff={participantStaff}

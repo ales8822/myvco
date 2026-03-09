@@ -180,7 +180,7 @@ export default function ImageSidebarPanel({ meetingId, companyId, isActive, refr
                         if (onInsertMention) onInsertMention(mention);
                     }} />
 
-                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                    <div className="mt-3 p-2 bg-primary-50 dark:bg-primary-900/10 border border-primary-200 dark:border-primary-900/30 rounded text-xs text-primary-800 dark:text-primary-300">
                         💡 Click an image or use <b>@imgN</b> to let agents see it.
                     </div>
                 </>

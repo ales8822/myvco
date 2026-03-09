@@ -35,14 +35,14 @@ export default function StaffList({
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleEditStaff(member); }}
-                                className="p-1.5 bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-600 rounded shadow-sm border border-gray-200 dark:border-gray-600"
+                                className="p-1.5 bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-neutral-600 rounded shadow-sm border border-gray-200 dark:border-neutral-600"
                                 title="Edit Staff"
                             >
                                 ✏️
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleFireStaff(member.id); }}
-                                className="p-1.5 bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-600 rounded shadow-sm border border-gray-200 dark:border-gray-600"
+                                className="p-1.5 bg-white dark:bg-neutral-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-neutral-600 rounded shadow-sm border border-gray-200 dark:border-neutral-600"
                                 title="Fire Staff"
                             >
                                 🔥
@@ -70,23 +70,23 @@ export default function StaffList({
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">📂 {member.department_name}</p>
                     )}
                     {member.personality && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{member.personality}</p>
+                        <p className="text-sm text-gray-600 dark:text-neutral-300 mb-3 line-clamp-2">{member.personality}</p>
                     )}
                     <div className="mt-auto">
                         {member.system_prompt && (
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 italic truncate">Instr: {member.system_prompt}</p>
+                            <p className="text-xs text-gray-400 dark:text-neutral-500 mb-2 italic truncate">Instr: {member.system_prompt}</p>
                         )}
                         {member.expertise && member.expertise.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-3">
                                 {member.expertise.map((skill, idx) => (
-                                    <span key={idx} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded border border-gray-200 dark:border-gray-600">
+                                    <span key={idx} className="px-2 py-1 bg-gray-100 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 text-xs rounded border border-gray-200 dark:border-neutral-600">
                                         {skill}
                                     </span>
                                 ))}
                             </div>
                         )}
                         {showFiredStaff && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/30">Fired: {new Date(member.fired_at).toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-500 dark:text-neutral-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/30">Fired: {new Date(member.fired_at).toLocaleDateString()}</p>
                         )}
                     </div>
                 </div>

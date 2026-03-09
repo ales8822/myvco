@@ -1,11 +1,12 @@
-/* frontend\src\index.css */
+/* 2. Modified frontend/src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100;
+    /* 2.1 Updated body dark mode to neutral-950 (True Dark) */
+    @apply bg-gray-50 text-gray-900 font-sans transition-colors duration-200 dark:bg-neutral-950 dark:text-gray-100;
   }
 }
 
@@ -15,15 +16,18 @@
   }
   
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium;
+    /* 2.2 Updated secondary button to use neutral grays in dark mode */
+    @apply px-4 py-2 bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-neutral-200 rounded-lg hover:bg-gray-300 dark:hover:bg-neutral-700 transition-colors font-medium;
   }
   
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors duration-200;
+    /* 2.3 Updated card to neutral-900 with a more subtle neutral-800 border */
+    @apply bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 transition-colors duration-200;
   }
   
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dark:bg-gray-700 dark:text-gray-100;
+    /* 2.4 Updated input fields for warmer dark-mode surfaces */
+    @apply w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dark:bg-neutral-800 dark:text-gray-100;
   }
   
   .label {

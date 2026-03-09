@@ -18,11 +18,11 @@ export default function HireFromPoolModal({ show, onClose, companyId }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-neutral-900 rounded-xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-transparent dark:border-neutral-800 transition-colors">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Hire from Agent Pool</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-200 transition-colors">
                         ✕
                     </button>
                 </div>
@@ -41,7 +41,7 @@ export default function HireFromPoolModal({ show, onClose, companyId }) {
                                 const otherCompanies = agent.companies?.filter(c => c.id !== companyId) || [];
                                 
                                 return (
-                                    <div key={agent.id} className="border border-gray-100 dark:border-gray-600 rounded-lg p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <div key={agent.id} className="border border-gray-100 dark:border-neutral-800 rounded-lg p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-bold text-gray-900 dark:text-white">{agent.name}</h3>
@@ -56,7 +56,7 @@ export default function HireFromPoolModal({ show, onClose, companyId }) {
                                                 <div className="flex flex-wrap gap-1 mt-1">
                                                     <span className="text-[10px] text-gray-400 uppercase font-semibold">Also working for:</span>
                                                     {otherCompanies.map(c => (
-                                                        <span key={c.id} className="bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-[9px] px-1.5 py-0.5 rounded">
+                                                        <span key={c.id} className="bg-gray-50 dark:bg-neutral-600 text-gray-500 dark:text-neutral-300 text-[9px] px-1.5 py-0.5 rounded">
                                                             {c.name}
                                                         </span>
                                                     ))}
@@ -68,7 +68,7 @@ export default function HireFromPoolModal({ show, onClose, companyId }) {
                                             disabled={isHiredByThisCompany}
                                             className={`${
                                                 isHiredByThisCompany 
-                                                ? "bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-300 cursor-not-allowed" 
+                                                ? "bg-gray-100 dark:bg-neutral-600 text-gray-400 dark:text-neutral-300 cursor-not-allowed" 
                                                 : "bg-primary-600 hover:bg-primary-700 text-white"
                                             } px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-4 whitespace-nowrap`}
                                         >
@@ -84,7 +84,7 @@ export default function HireFromPoolModal({ show, onClose, companyId }) {
                 <div className="mt-8 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 px-6 py-2 rounded-lg font-medium transition-colors"
+                        className="text-gray-600 dark:text-neutral-300 hover:bg-gray-50 dark:hover:bg-neutral-700 border border-gray-200 dark:border-neutral-600 px-6 py-2 rounded-lg font-medium transition-colors"
                     >
                         Close
                     </button>

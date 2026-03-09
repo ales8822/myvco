@@ -83,9 +83,9 @@ export default function AssetManager({ companyId }) {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold text-gray-900">Company Assets Library</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Company Assets Library</h2>
                 <button
                     onClick={() => setShowUpload(!showUpload)}
                     className="btn-primary"
@@ -95,8 +95,8 @@ export default function AssetManager({ companyId }) {
             </div>
 
             {showUpload && (
-                <div className="mb-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
-                    <h3 className="font-semibold text-gray-900 mb-4">Upload New Asset</h3>
+                <div className="mb-8 bg-gray-50 dark:bg-neutral-800 p-6 rounded-xl border border-gray-200 dark:border-neutral-700">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Upload New Asset</h3>
                     <form onSubmit={handleUpload} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -105,7 +105,7 @@ export default function AssetManager({ companyId }) {
                                     <span className="text-gray-500 mr-1">@</span>
                                     <input
                                         type="text"
-                                        className="input"
+                                        className=" input block w-full text-sm text-gray-500 file:bg-primary-50 dark:file:bg-primary-900/20 file:text-primary-700 dark:file:text-primary-400"
                                         value={newAsset.asset_name}
                                         onChange={e => setNewAsset({ ...newAsset, asset_name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
                                         placeholder="logo_main"
@@ -118,7 +118,7 @@ export default function AssetManager({ companyId }) {
                                 <label className="label">Display Name</label>
                                 <input
                                     type="text"
-                                    className="input"
+                                    className="input block w-full text-sm text-gray-500 file:bg-primary-50 dark:file:bg-primary-900/20 file:text-primary-700 dark:file:text-primary-400"
                                     value={newAsset.display_name}
                                     onChange={e => setNewAsset({ ...newAsset, display_name: e.target.value })}
                                     placeholder="Main Logo"
@@ -128,7 +128,7 @@ export default function AssetManager({ companyId }) {
                         <div>
                             <label className="label">Description</label>
                             <textarea
-                                className="input"
+                                className="input block w-full text-sm text-gray-500 file:bg-primary-50 dark:file:bg-primary-900/20 file:text-primary-700 dark:file:text-primary-400"
                                 value={newAsset.description}
                                 onChange={e => setNewAsset({ ...newAsset, description: e.target.value })}
                                 placeholder="Context for the LLM about this asset..."
@@ -166,13 +166,13 @@ export default function AssetManager({ companyId }) {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {assets.map(asset => (
-                        <div key={asset.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                        <div key={asset.id} className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-neutral-900">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">
+                                    <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-xs font-bold px-2 py-1 rounded">
                                         @{asset.asset_name}
                                     </span>
-                                    <span className="text-xs text-gray-500 uppercase">{asset.asset_type}</span>
+                                    <span className="text-xs text-gray-500 dark:text-neutral-500 uppercase">{asset.asset_type}</span>
                                 </div>
                                 <button
                                     onClick={() => handleDelete(asset.id)}
@@ -183,7 +183,7 @@ export default function AssetManager({ companyId }) {
                                 </button>
                             </div>
 
-                            <div className="aspect-video bg-gray-100 rounded-md mb-3 overflow-hidden flex items-center justify-center border border-gray-100">
+                            <div className="aspect-video bg-gray-100 dark:bg-neutral-800 rounded-md mb-3 border border-gray-100 dark:border-neutral-800">
                                 {asset.asset_type === 'image' ? (
                                     <img
                                         src={`http://localhost:8001/${asset.file_path}`}
@@ -195,7 +195,7 @@ export default function AssetManager({ companyId }) {
                                 )}
                             </div>
 
-                            <h4 className="font-medium text-gray-900 truncate">{asset.display_name}</h4>
+                            <h4 className="font-medium text-gray-900 dark:text-white truncate">{asset.display_name}</h4>
                             {asset.description && (
                                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{asset.description}</p>
                             )}

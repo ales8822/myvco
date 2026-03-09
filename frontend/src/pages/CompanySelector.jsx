@@ -14,9 +14,10 @@ export default function CompanySelector() {
     const ThemeToggle = () => {
         const { theme, toggleTheme } = useThemeStore();
         return (
-            <button
+             <button
                 onClick={toggleTheme}
-                className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+                // 1.1 Updated to neutral-800/neutral-700
+                className="flex items-center gap-2 text-gray-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-neutral-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-neutral-700 shadow-sm"
                 title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
                 {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -65,53 +66,43 @@ export default function CompanySelector() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-colors">
+         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900 transition-colors">
             <div className="container mx-auto px-4 py-16 relative">
 
                 {/* Global Actions (Settings, Library, Agent Factory, Theme Toggle) */}
+                  {/* Global Actions */}
                 <div className="absolute top-6 right-6 flex gap-3">
-                    <button
-                        onClick={() => navigate('/agent-factory')}
-                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
-                        title="Global Agent Factory"
-                    >
-                        <span className="text-xl">🤖</span>
-                        <span className="text-sm font-medium">Agents</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate('/library')}
-                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
-                        title="Global Prototype Library"
-                    >
-                        <span className="text-xl">📚</span>
-                        <span className="text-sm font-medium">Library</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate('/settings')}
-                        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 shadow-sm"
-                        title="Application Settings"
-                    >
-                        <span className="text-xl">⚙️</span>
-                        <span className="text-sm font-medium">Settings</span>
-                    </button>
+                    {[
+                        { path: '/agent-factory', icon: '🤖', label: 'Agents' },
+                        { path: '/library', icon: '📚', label: 'Library' },
+                        { path: '/settings', icon: '⚙️', label: 'Settings' }
+                    ].map((item) => (
+                        <button
+                            key={item.path}
+                            onClick={() => navigate(item.path)}
+                            // 1.3 Updated buttons to neutral scale
+                            className="flex items-center gap-2 text-gray-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors bg-white/50 dark:bg-neutral-800/50 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-neutral-700 shadow-sm"
+                        >
+                            <span className="text-xl">{item.icon}</span>
+                            <span className="text-sm font-medium">{item.label}</span>
+                        </button>
+                    ))}
 
                     <ThemeToggle />
                 </div>
 
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                        Welcome to <span className="text-primary-600">MyVCO</span>
+                        Welcome to <span className="text-primary-600 dark:text-primary-500">MyVCO</span>
                     </h1>
-                    <p className="text-xl text-gray-600 dark:text-gray-400">
+                    <p className="text-xl text-gray-600 dark:text-neutral-400">
                         Your Virtual Company with AI-Powered Staff
                     </p>
                 </div>
 
                 <div className="max-w-6xl mx-auto">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-neutral-200">
                             Select a Company
                         </h2>
                         <button
@@ -188,9 +179,9 @@ export default function CompanySelector() {
 
             {/* Create Company Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-neutral-900 rounded-xl p-8 max-w-md w-full shadow-2xl border border-transparent dark:border-neutral-800 transition-colors">
+                       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                             Create New Company
                         </h2>
                         <form onSubmit={handleCreateCompany}>

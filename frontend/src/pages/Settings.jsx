@@ -42,57 +42,57 @@ const Settings = () => {
             {currentCompany && <Sidebar />}
 
             {/* Adjust margin based on whether Sidebar is visible */}
-            <div className={`${currentCompany ? 'ml-64' : 'max-w-3xl mx-auto'} flex-1 p-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors`}>
+            <div className={`${currentCompany ? 'ml-64' : 'max-w-3xl mx-auto'} flex-1 p-8 bg-gray-50 dark:bg-neutral-950 dark:border-neutral-800 min-h-screen transition-colors`}>
 
                 {/* Back button if coming from Main Page */}
                 {!currentCompany && (
                     <button
                         onClick={() => navigate('/')}
-                        className="mb-6 flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        className="mb-6 flex items-center text-gray-600 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     >
                         <span className="mr-2">←</span> Back to Home
                     </button>
                 )}
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 transition-colors">
+                <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-8 transition-colors">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Application Settings</h2>
 
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="geminiKey">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1" htmlFor="geminiKey">
                                 Google Gemini API Key
                             </label>
                             <input
                                 id="geminiKey"
                                 type="password"
-                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100"
                                 value={geminiKey}
                                 onChange={e => setGeminiKey(e.target.value)}
                                 placeholder="AIza..."
                             />
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for Gemini models.</p>
+                            <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">Used for Gemini models.</p>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="runpodUrl">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1" htmlFor="runpodUrl">
                                 Ollama Base URL (RunPod or Local)
                             </label>
                             <input
                                 id="runpodUrl"
                                 type="text"
-                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100"
                                 value={runpodUrl}
                                 onChange={e => setRunpodUrl(e.target.value)}
                                 placeholder="https://your-pod-id.runpod.io or http://localhost:11434"
                             />
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for Ollama models.</p>
+                            <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">Used for Ollama models.</p>
                         </div>
 
-                        <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <div className="pt-4 border-t border-gray-100 dark:border-neutral-700">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">Archived Companies</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">View and manage archived companies</p>
+                                    <p className="text-sm text-gray-500 dark:text-neutral-400">View and manage archived companies</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <label className="relative inline-flex items-center cursor-pointer">
@@ -103,7 +103,7 @@ const Settings = () => {
                                             onChange={(e) => setShowArchived(e.target.checked)}
                                         />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                                        <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Show Link</span>
+                                        <span className="ml-3 text-sm font-medium text-gray-700 dark:text-neutral-300">Show Link</span>
                                     </label>
                                 </div>
                             </div>
@@ -119,7 +119,7 @@ const Settings = () => {
                             )}
                         </div>
 
-                        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <div className="pt-4 border-t border-gray-100 dark:border-neutral-700 flex items-center justify-between">
                             <button
                                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors"
                                 onClick={handleSave}

@@ -179,6 +179,36 @@ DEFAULT_MODEL=gemini-2.0-flash
 - Frontend proxies `/api` requests to backend
 - Database file: `myvco.db` (created automatically)
 
+
+
+"🎨 Design System & Visual Consistency"
+
+1. The "True Dark" Color Palette
+Base Background: neutral-950 (#0a0a0a) – Use for page-level wrappers.
+Primary Surfaces: neutral-900 (#171717) – Use for Cards, Modals, and Sidebars.
+Secondary Surfaces: neutral-800 (#262626) – Use for Table rows, Input fields, and hover states.
+Borders: neutral-800 (Subtle) or neutral-700 (High contrast).
+
+2. Brand Accents
+Primary (Teal): Used for "Action" and "Knowledge" (primary-500/600). It represents growth and factual data.
+Secondary (Indigo): Used for "Configuration" and "Behavior" (secondary-500/600). It represents the AI logic and background settings.
+
+3. Categorical UI Patterns
+To keep the app intuitive, we follow these color-coding rules:
+Manifestos/Prompts: Always use Indigo accents.
+Knowledge/Assets: Always use Teal accents.
+Destructive Actions: Use Red but paired with neutral-dark backgrounds (never pure white-on-red).
+
+4. Component Anatomy
+Corners: Standardized to rounded-xl (12px) for main containers and rounded-lg (8px) for inputs/buttons.
+Glassmorphism: Overlays/Modals must use backdrop-blur-sm with a bg-black/60 overlay.
+Transitions: All interactive elements should include transition-all duration-200 to maintain a smooth, "app-like" feel.
+
+5. Typography Hierarchy
+Titles: text-gray-900 / dark:text-white (High Emphasis).
+Body: text-gray-700 / dark:text-neutral-300 (Medium Emphasis).
+Metadata: text-gray-500 / dark:text-neutral-500 (Low Emphasis).
+
 ## 📄 License
 
 MIT License - feel free to use this project however you'd like!

@@ -17,25 +17,25 @@ export default function EditStaffModal({
     handleInputChange,
 }) {
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-xl p-8 max-w-md w-full my-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Staff Member</h2>
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white dark:bg-neutral-900 rounded-xl p-8 max-w-md w-full my-8 shadow-2xl border border-transparent dark:border-neutral-800 transition-colors">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit Staff Member</h2>
                 <form onSubmit={handleUpdate}>
                     <div className="mb-4">
-                        <label className="label">Name</label>
+                        <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Name</label>
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={editForm.name}
                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                             required
                         />
                     </div>
                     <div className="mb-4">
-                        <label className="label">Role</label>
+                        <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Role</label>
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={editForm.role}
                             onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                             required
@@ -44,11 +44,11 @@ export default function EditStaffModal({
                     {/* System Prompt */}
                     <div className="mb-4 relative group">
                         <div className="flex justify-between items-center mb-1">
-                            <label className="label mb-0">Personal Instructions</label>
+                            <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Personal Instructions</label>
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'system_prompt' ? null : 'system_prompt')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 font-medium"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -70,11 +70,11 @@ export default function EditStaffModal({
                     {/* Knowledge Base */}
                     <div className="mb-4 relative group">
                         <div className="flex justify-between items-center mb-1">
-                            <label className="label mb-0 font-bold text-amber-600">Knowledge Base</label>
+                            <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Knowledge Base</label>
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'knowledge_base' ? null : 'knowledge_base')}
-                                className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+                                className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 font-medium"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -86,7 +86,7 @@ export default function EditStaffModal({
                             />
                         )}
                         <textarea
-                            className="input border-amber-100 focus:border-amber-500"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             rows="3"
                             value={editForm.knowledge_base}
                             onChange={(e) => handleInputChange('knowledge_base', e.target.value, true)}
@@ -96,11 +96,11 @@ export default function EditStaffModal({
                     {/* Personality */}
                     <div className="mb-4 relative group">
                         <div className="flex justify-between items-center mb-1">
-                            <label className="label mb-0">Personality</label>
+                            <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Personality</label>
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'personality' ? null : 'personality')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 font-medium"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -112,7 +112,7 @@ export default function EditStaffModal({
                             />
                         )}
                         <textarea
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             rows="2"
                             value={editForm.personality}
                             onChange={(e) => handleInputChange('personality', e.target.value, true)}
@@ -122,11 +122,11 @@ export default function EditStaffModal({
                     {/* Expertise */}
                     <div className="mb-4 relative group">
                         <div className="flex justify-between items-center mb-1">
-                            <label className="label mb-0">Expertise (comma-separated)</label>
+                            <label className="label mb-0 font-bold text-primary-600 dark:text-primary-400">Expertise (comma-separated)</label>
                             <button
                                 type="button"
                                 onClick={() => setActiveDropdown(activeDropdown === 'expertise' ? null : 'expertise')}
-                                className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 font-medium"
                             >
                                 <BookOpen className="w-3 h-3" /> Library
                             </button>
@@ -139,7 +139,7 @@ export default function EditStaffModal({
                         )}
                         <input
                             type="text"
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={editForm.expertise}
                             onChange={(e) => handleInputChange('expertise', e.target.value, true)}
                             placeholder="e.g., Python, React, Marketing"
@@ -147,9 +147,9 @@ export default function EditStaffModal({
                     </div>
                     {/* Department */}
                     <div className="mb-4">
-                        <label className="label">Department</label>
+                        <label className="label font-bold text-primary-600 dark:text-primary-400">Department</label>
                         <select
-                            className="input"
+                            className="input border-primary-100 dark:border-primary-900/30 focus:border-primary-500"
                             value={editForm.department_id}
                             onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
                         >

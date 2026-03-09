@@ -16,7 +16,7 @@ export default function KnowledgeBase() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="ml-64 flex-1 p-8 bg-gray-50 min-h-screen">
+            <div className="ml-64 flex-1 p-8 bg-gray-50 dark:bg-neutral-950 dark:border-neutral-800 min-h-screen">
                 <div className="max-w-7xl mx-auto">
                     <KnowledgeHeader setShowAddModal={setShowAddModal} />
 
