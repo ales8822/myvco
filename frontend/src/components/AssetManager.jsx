@@ -160,8 +160,8 @@ export default function AssetManager({ companyId }) {
             {loading ? (
                 <div className="text-center py-8">Loading assets...</div>
             ) : assets.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    <p className="text-gray-500">No assets found. Upload assets to reference them in meetings.</p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-neutral-800 rounded-xl border border-dashed border-gray-300 dark:border-neutral-700">
+                    <p className="text-gray-500 dark:text-neutral-500 ">No assets found. Upload assets to reference them in meetings.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

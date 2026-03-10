@@ -8,7 +8,7 @@ export default function MeetingHeader({
     onEndMeetingClick
 }) {
     return (
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <div className="bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 p-6 transition-colors">
             <Breadcrumbs items={[{ label: 'Dashboard', path: '/dashboard' }, { label: currentMeeting?.title || 'Meeting' }]} />
             <div className="flex justify-between items-center mt-2">
                 <div>

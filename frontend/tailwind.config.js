@@ -21,6 +21,7 @@ export default {
                     700: '#0f766e',
                     800: '#115e59',
                     900: '#134e4a',
+                    950: '#042f2e',
                 },
                 // 1.2 Updated Secondary to Indigo palette (Slate-blue)
                 secondary: {
@@ -34,7 +35,11 @@ export default {
                     700: '#4338ca',
                     800: '#3730a3',
                     900: '#312e81',
+                    950: '#1e1b4b',
                 },
+                neutral: {
+                    950: '#0a0a0a', // True Black Neutral
+                }
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],

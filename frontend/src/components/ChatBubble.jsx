@@ -77,7 +77,7 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
       );
     }
     return (
-      <div className="overflow-hidden my-3 rounded-lg border border-gray-700 dark:border-neutral-700 shadow-sm relative group">
+      <div className="overflow-hidden my-3 rounded-lg border border-gray-700 dark:border-neutral-800 shadow-sm relative group">
         <div className="bg-gray-800 dark:bg-neutral-800 px-4 py-2 flex items-center justify-between border-b border-gray-700 dark:border-neutral-700">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
@@ -95,10 +95,10 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
             </button>
           </div>
         </div>
-        <div className="overflow-x-auto bg-[#0d0d0d] max-w-full">
+        <div className="overflow-x-auto bg-[#0d0d0d] dark:bg-neutral-950 max-w-full shadow-inner">
           {" "}
           {/* True dark code block */}
-          <code className="block text-gray-300 p-4 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words">
+          <code className="block text-neutral-300 selection:bg-primary-500/30 p-4 text-[13px] font-mono leading-relaxed whitespace-pre-wrap break-words">
             {children}
           </code>
         </div>
@@ -201,12 +201,12 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className={`w-full p-3 rounded text-sm min-h-[120px] resize-y 
-                                ${
-                                  isUser
-                                    ? "bg-primary-700 text-white placeholder-white/50 border-primary-500 focus:ring-white/30"
-                                    : "bg-gray-50 text-gray-900 border border-gray-300 focus:ring-blue-500/30"
-                                } 
-                                focus:outline-none focus:ring-2`}
+        ${
+          isUser
+            ? "bg-primary-700 text-white placeholder-white/50 border-primary-500 focus:ring-white/30"
+            : "bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white border border-gray-300 dark:border-neutral-700 focus:ring-primary-500/30"
+        } 
+        focus:outline-none focus:ring-2`}
               rows={Math.max(5, editContent.split("\n").length)}
               autoFocus
             />
@@ -216,7 +216,7 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
                   setIsEditing(false);
                   setEditContent(message.content);
                 }}
-                className={`p-1.5 rounded transition-colors ${isUser ? "hover:bg-white/20 text-white" : "hover:bg-gray-200 text-gray-600"}`}
+                className={`p-1.5 rounded transition-colors ${isUser ? "hover:bg-white/20 text-white" : "hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-600 dark:text-neutral-400"}`}
                 title="Cancel"
               >
                 <X size={16} />
@@ -232,7 +232,7 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
           </div>
         ) : (
           <div
-            className={`markdown-content w-full ${isUser ? "text-white" : "text-gray-800"}`}
+            className={`markdown-content w-full ${isUser ? "text-white" : "text-neutral-800 dark:text-neutral-300"}`}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -278,28 +278,28 @@ export default function ChatBubble({ message, participantInfo, onResend }) {
                 ),
                 blockquote: ({ node, ...props }) => (
                   <blockquote
-                    className={`border-l-4 pl-3 italic my-2 ${isUser ? "border-white/50" : "border-gray-300 text-gray-600"}`}
+                    className={`border-l-4 pl-3 italic my-2 ${isUser ? "border-white/50 text-white/90" : "border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-neutral-400"}`}
                     {...props}
                   />
                 ),
                 code: CodeBlock,
                 table: ({ node, ...props }) => (
-                  <div className="overflow-x-auto my-2 border rounded-lg">
+                  <div className="overflow-x-auto my-2 border border-gray-200 dark:border-neutral-800 rounded-lg shadow-sm">
                     <table
-                      className="min-w-full divide-y divide-gray-300 text-sm"
+                      className="min-w-full divide-y divide-gray-300 dark:divide-neutral-700 text-sm"
                       {...props}
                     />
                   </div>
                 ),
                 th: ({ node, ...props }) => (
                   <th
-                    className={`px-3 py-2 text-left font-semibold ${isUser ? "bg-primary-700" : "bg-gray-100"}`}
+                    className={`px-3 py-2 text-left font-semibold ${isUser ? "bg-primary-700" : "bg-gray-100 dark:bg-neutral-800 dark:text-neutral-100"}`}
                     {...props}
                   />
                 ),
                 td: ({ node, ...props }) => (
                   <td
-                    className={`px-3 py-2 border-t ${isUser ? "border-primary-500" : "border-gray-200"}`}
+                    className={`px-3 py-2 border-t border-gray-200 dark:border-neutral-800 ${isUser ? "border-primary-500" : "dark:text-neutral-300"}`}
                     {...props}
                   />
                 ),
