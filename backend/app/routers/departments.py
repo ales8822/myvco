@@ -59,7 +59,7 @@ def get_department_staff(department_id: int, db: Session = Depends(get_db)):
     for staff_member in staff_list:
         staff_dict = {
             "id": staff_member.id,
-            "company_id": staff_member.company_id,
+            "company_id": department.company_id,
             "department_id": staff_member.department_id,
             "department_name": department.name,
             "name": staff_member.name,

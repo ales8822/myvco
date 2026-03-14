@@ -1,5 +1,5 @@
 // frontend\src\components\DepartmentView.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDepartmentStore } from '../stores/departmentStore';
 import { useStaffStore } from '../stores/staffStore';
 import { departmentsApi } from '../lib/api';
@@ -25,11 +25,11 @@ export default function DepartmentView({ companyId, onDepartmentClick }) {
         setDepartmentStaffCounts(counts);
     };
 
-    useState(() => {
-        if (departments.length > 0) {
+    useEffect(() => {
+        if (departments && departments.length > 0) {
             loadStaffCounts();
         }
-    }, [departments]);
+    }, [departments]); 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
