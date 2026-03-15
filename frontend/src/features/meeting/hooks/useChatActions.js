@@ -1,3 +1,4 @@
+// frontend/src/features/meeting/hooks/useChatActions.js
 import { toast } from "react-hot-toast";
 import { useMeetingStore } from "../../../stores/meetingStore";
 import { useStaffStore } from "../../../stores/staffStore";

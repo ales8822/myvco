@@ -11,7 +11,18 @@ from ..schemas import meeting as schemas
 from ..schemas.image import MeetingImageCreate
 from ..schemas.action_item import ActionItem as ActionItemSchema, ActionItemCreate
 from ..database import get_db, SessionLocal
-from ..models import Company, Staff, Meeting, MeetingParticipant, MeetingMessage, MeetingImage, ActionItem, Department, CompanyAsset, MeetingTemplate
+from ..models import (
+    Company,
+    Staff,
+    Meeting,
+    MeetingParticipant,
+    MeetingMessage,
+    MeetingImage,
+    ActionItem,
+    Department,
+    CompanyAsset,
+    MeetingTemplate,
+)
 from ..services.llm_service import llm_service
 from ..services.memory_service import memory_service
 from ..services.mention_parser import mention_parser
@@ -31,12 +42,14 @@ UPLOADS_DIR = os.path.join(BASE_DIR, "uploads", "meeting_images")
 # Global dictionary to manage stop signals
 autonomous_stop_events = {}
 
+
 @router.post("/{meeting_id}/autonomous/stop")
 def stop_autonomous_session(meeting_id: int):
     if meeting_id in autonomous_stop_events:
         autonomous_stop_events[meeting_id].set()
         return {"message": "Stop signal sent"}
     return {"message": "No active session found", "status": "ignored"}
+
 
 def link_mentioned_assets(db: Session, meeting_id: int, company_id: int, text: str):
     """
@@ -45,48 +58,61 @@ def link_mentioned_assets(db: Session, meeting_id: int, company_id: int, text: s
     """
     mentions = mention_parser.parse_mentions(text)
     for mention in mentions:
-        if not mention.startswith('img'):
+        if not mention.startswith("img"):
             # Check if it's a company asset
-            asset = db.query(CompanyAsset).filter(
-                CompanyAsset.company_id == company_id,
-                CompanyAsset.asset_name == mention
-            ).first()
-            
+            asset = (
+                db.query(CompanyAsset)
+                .filter(
+                    CompanyAsset.company_id == company_id,
+                    CompanyAsset.asset_name == mention,
+                )
+                .first()
+            )
+
             if asset:
                 # Check if already linked (by path)
-                existing = db.query(MeetingImage).filter(
-                    MeetingImage.meeting_id == meeting_id,
-                    MeetingImage.image_path == asset.file_path
-                ).first()
-                
+                existing = (
+                    db.query(MeetingImage)
+                    .filter(
+                        MeetingImage.meeting_id == meeting_id,
+                        MeetingImage.image_path == asset.file_path,
+                    )
+                    .first()
+                )
+
                 if not existing:
                     # Link it
-                    count = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).count()
+                    count = (
+                        db.query(MeetingImage)
+                        .filter(MeetingImage.meeting_id == meeting_id)
+                        .count()
+                    )
                     new_image = MeetingImage(
                         meeting_id=meeting_id,
                         image_path=asset.file_path,
                         display_order=count + 1,
-                        image_metadata=asset.display_name
+                        image_metadata=asset.display_name,
                     )
                     db.add(new_image)
                     db.commit()
 
+
 @router.post("/companies/{company_id}/meetings", response_model=schemas.Meeting)
-def create_meeting(company_id: int, meeting: schemas.MeetingCreate, db: Session = Depends(get_db)):
+def create_meeting(
+    company_id: int, meeting: schemas.MeetingCreate, db: Session = Depends(get_db)
+):
     """Create a new meeting with dynamic LLM configuration per participant"""
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    
+
     db_meeting = Meeting(
-        company_id=company_id,
-        title=meeting.title,
-        meeting_type=meeting.meeting_type
+        company_id=company_id, title=meeting.title, meeting_type=meeting.meeting_type
     )
     db.add(db_meeting)
     db.commit()
     db.refresh(db_meeting)
-    
+
     # Add participants with their specific LLM config
     for participant_config in meeting.participants:
         staff = db.query(Staff).filter(Staff.id == participant_config.staff_id).first()
@@ -95,28 +121,34 @@ def create_meeting(company_id: int, meeting: schemas.MeetingCreate, db: Session 
                 meeting_id=db_meeting.id,
                 staff_id=participant_config.staff_id,
                 llm_provider=participant_config.llm_provider,
-                llm_model=participant_config.llm_model
+                llm_model=participant_config.llm_model,
             )
             db.add(participant)
-    
+
     db.commit()
-    
+
     # Construct response with participant details
     participants_data = []
-    participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == db_meeting.id).all()
-    
+    participants = (
+        db.query(MeetingParticipant)
+        .filter(MeetingParticipant.meeting_id == db_meeting.id)
+        .all()
+    )
+
     for participant in participants:
         staff = db.query(Staff).filter(Staff.id == participant.staff_id).first()
         if staff:
-            participants_data.append(schemas.MeetingParticipantInfo(
-                staff_id=staff.id,
-                staff_name=staff.name,
-                staff_role=staff.role,
-                llm_provider=participant.llm_provider,
-                llm_model=participant.llm_model,
-                joined_at=participant.joined_at
-            ))
-            
+            participants_data.append(
+                schemas.MeetingParticipantInfo(
+                    staff_id=staff.id,
+                    staff_name=staff.name,
+                    staff_role=staff.role,
+                    llm_provider=participant.llm_provider,
+                    llm_model=participant.llm_model,
+                    joined_at=participant.joined_at,
+                )
+            )
+
     return {
         "id": db_meeting.id,
         "company_id": db_meeting.company_id,
@@ -126,8 +158,9 @@ def create_meeting(company_id: int, meeting: schemas.MeetingCreate, db: Session 
         "summary": db_meeting.summary,
         "created_at": db_meeting.created_at,
         "ended_at": db_meeting.ended_at,
-        "participants": participants_data
+        "participants": participants_data,
     }
+
 
 @router.get("/companies/{company_id}/meetings", response_model=List[schemas.Meeting])
 def list_company_meetings(company_id: int, db: Session = Depends(get_db)):
@@ -135,53 +168,68 @@ def list_company_meetings(company_id: int, db: Session = Depends(get_db)):
     result = []
     for meeting in meetings:
         participants_data = []
-        participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting.id).all()
+        participants = (
+            db.query(MeetingParticipant)
+            .filter(MeetingParticipant.meeting_id == meeting.id)
+            .all()
+        )
         for participant in participants:
             staff = db.query(Staff).filter(Staff.id == participant.staff_id).first()
             if staff:
-                participants_data.append(schemas.MeetingParticipantInfo(
-                    staff_id=staff.id,
-                    staff_name=staff.name,
-                    staff_role=staff.role,
-                    llm_provider=participant.llm_provider,
-                    llm_model=participant.llm_model,
-                    joined_at=participant.joined_at
-                ))
-        
-        result.append({
-            "id": meeting.id,
-            "company_id": meeting.company_id,
-            "title": meeting.title,
-            "meeting_type": meeting.meeting_type,
-            "status": meeting.status,
-            "summary": meeting.summary,
-            "created_at": meeting.created_at,
-            "ended_at": meeting.ended_at,
-            "participants": participants_data
-        })
+                participants_data.append(
+                    schemas.MeetingParticipantInfo(
+                        staff_id=staff.id,
+                        staff_name=staff.name,
+                        staff_role=staff.role,
+                        llm_provider=participant.llm_provider,
+                        llm_model=participant.llm_model,
+                        joined_at=participant.joined_at,
+                    )
+                )
+
+        result.append(
+            {
+                "id": meeting.id,
+                "company_id": meeting.company_id,
+                "title": meeting.title,
+                "meeting_type": meeting.meeting_type,
+                "status": meeting.status,
+                "summary": meeting.summary,
+                "created_at": meeting.created_at,
+                "ended_at": meeting.ended_at,
+                "participants": participants_data,
+            }
+        )
     return result
+
 
 @router.get("/{meeting_id}", response_model=schemas.Meeting)
 def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+
     participants_data = []
-    participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
+    participants = (
+        db.query(MeetingParticipant)
+        .filter(MeetingParticipant.meeting_id == meeting_id)
+        .all()
+    )
     for participant in participants:
         staff = db.query(Staff).filter(Staff.id == participant.staff_id).first()
         if staff:
-            participants_data.append(schemas.MeetingParticipantInfo(
-                staff_id=staff.id,
-                staff_name=staff.name,
-                staff_role=staff.role,
-                llm_provider=participant.llm_provider,
-                llm_model=participant.llm_model,
-                context_settings=participant.context_settings,
-                joined_at=participant.joined_at
-            ))
-            
+            participants_data.append(
+                schemas.MeetingParticipantInfo(
+                    staff_id=staff.id,
+                    staff_name=staff.name,
+                    staff_role=staff.role,
+                    llm_provider=participant.llm_provider,
+                    llm_model=participant.llm_model,
+                    context_settings=participant.context_settings,
+                    joined_at=participant.joined_at,
+                )
+            )
+
     return {
         "id": meeting.id,
         "company_id": meeting.company_id,
@@ -191,64 +239,82 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
         "summary": meeting.summary,
         "created_at": meeting.created_at,
         "ended_at": meeting.ended_at,
-        "participants": participants_data
+        "participants": participants_data,
     }
+
 
 @router.get("/{meeting_id}/messages", response_model=List[schemas.MeetingMessage])
 def get_meeting_messages(meeting_id: int, db: Session = Depends(get_db)):
-    return db.query(MeetingMessage).filter(MeetingMessage.meeting_id == meeting_id).order_by(MeetingMessage.created_at).all()
+    return (
+        db.query(MeetingMessage)
+        .filter(MeetingMessage.meeting_id == meeting_id)
+        .order_by(MeetingMessage.created_at)
+        .all()
+    )
+
 
 @router.post("/{meeting_id}/messages")
 async def send_message(
-    meeting_id: int, 
-    message: schemas.SendMessageRequest, 
-    staff_id: int, 
-    save_user_message: bool = True, # <--- Added flag
-    db: Session = Depends(get_db)
+    meeting_id: int,
+    message: schemas.SendMessageRequest,
+    staff_id: int,
+    save_user_message: bool = True,  # <--- Added flag
+    db: Session = Depends(get_db),
 ):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
         raise HTTPException(status_code=400, detail="Meeting not active")
-    
-    participant = db.query(MeetingParticipant).filter(
-        MeetingParticipant.meeting_id == meeting_id,
-        MeetingParticipant.staff_id == staff_id
-    ).first()
-    
+
+    participant = (
+        db.query(MeetingParticipant)
+        .filter(
+            MeetingParticipant.meeting_id == meeting_id,
+            MeetingParticipant.staff_id == staff_id,
+        )
+        .first()
+    )
+
     if not participant:
-        raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
-        
+        raise HTTPException(
+            status_code=404, detail="Staff member is not a participant in this meeting"
+        )
+
     staff = participant.staff
-    
+
     # Extract primitives before entering async generator
     p_llm_provider = participant.llm_provider
     p_llm_model = participant.llm_model
-    
+
     # Only save the user message if requested (prevents duplicates in Ask All)
     if save_user_message:
         user_message = MeetingMessage(
-            meeting_id=meeting_id, sender_type="user", sender_name=message.sender_name, content=message.content
+            meeting_id=meeting_id,
+            sender_type="user",
+            sender_name=message.sender_name,
+            content=message.content,
         )
         db.add(user_message)
         db.commit()
-    
+
     # Link mentioned company assets to meeting images
     link_mentioned_assets(db, meeting_id, meeting.company_id, message.content)
-    
+
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
-    knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
-    
+    knowledge_context = memory_service.get_company_knowledge_context(
+        db, meeting.company_id
+    )
+
     # Parse @mentions from message content to get image paths
     image_paths, missing_mentions = mention_parser.resolve_all_mentions(
         message.content, meeting_id, meeting.company_id, db
     )
-    
+
     # Warn if any mentions were not found
     if missing_mentions:
         print(f"WARNING: Missing mentions in message: {missing_mentions}")
 
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
-    
+
     system_prompt = llm_service.build_system_prompt(
         staff_name=staff.name,
         role=staff.role,
@@ -261,66 +327,83 @@ async def send_message(
         system_prompt=staff.system_prompt or "",
         knowledge_base=staff.knowledge_base or "",
         db=db,
-        context_settings=participant.context_settings
+        context_settings=participant.context_settings,
     )
-    
+
     # Apply explicit overrides if provided
     if message.custom_system_prompt is not None:
         system_prompt = message.custom_system_prompt
-    
-    final_prompt = message.custom_user_content if message.custom_user_content is not None else message.content
-    
+
+    final_prompt = (
+        message.custom_user_content
+        if message.custom_user_content is not None
+        else message.content
+    )
+
     async def generate_response():
         response_parts = []
         async for chunk in llm_service.generate_stream(
-            prompt=final_prompt, 
-            system_prompt=system_prompt, 
-            provider=p_llm_provider, 
-            model=p_llm_model,       
-            image_paths=image_paths
+            prompt=final_prompt,
+            system_prompt=system_prompt,
+            provider=p_llm_provider,
+            model=p_llm_model,
+            image_paths=image_paths,
         ):
             response_parts.append(chunk)
             yield chunk
-        
+
         full_response = "".join(response_parts)
-        
+
         from ..database import SessionLocal
+
         with SessionLocal() as new_db:
             staff_message = MeetingMessage(
-                meeting_id=meeting_id, staff_id=staff_id, sender_type="staff",
-                sender_name=staff.name, content=full_response
+                meeting_id=meeting_id,
+                staff_id=staff_id,
+                sender_type="staff",
+                sender_name=staff.name,
+                content=full_response,
             )
             new_db.add(staff_message)
             new_db.commit()
-    
+
     return StreamingResponse(generate_response(), media_type="text/plain")
+
 
 @router.post("/{meeting_id}/messages/preview")
 async def preview_prompt(
-    meeting_id: int, 
-    message: schemas.SendMessageRequest, 
-    staff_id: int, 
-    db: Session = Depends(get_db)
+    meeting_id: int,
+    message: schemas.SendMessageRequest,
+    staff_id: int,
+    db: Session = Depends(get_db),
 ):
     """Generate the system prompt and user message preview without sending them to the LLM"""
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
         raise HTTPException(status_code=400, detail="Meeting not active")
-    
-    participant = db.query(MeetingParticipant).filter(
-        MeetingParticipant.meeting_id == meeting_id,
-        MeetingParticipant.staff_id == staff_id
-    ).first()
-    
+
+    participant = (
+        db.query(MeetingParticipant)
+        .filter(
+            MeetingParticipant.meeting_id == meeting_id,
+            MeetingParticipant.staff_id == staff_id,
+        )
+        .first()
+    )
+
     if not participant:
-        raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
-        
+        raise HTTPException(
+            status_code=404, detail="Staff member is not a participant in this meeting"
+        )
+
     staff = participant.staff
-    
+
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
-    knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
+    knowledge_context = memory_service.get_company_knowledge_context(
+        db, meeting.company_id
+    )
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
-    
+
     # 2. Build structured prompt blocks
     context_blocks_raw = llm_service.build_structured_prompt_blocks(
         staff_name=staff.name,
@@ -334,9 +417,9 @@ async def preview_prompt(
         system_prompt=staff.system_prompt or "",
         knowledge_base=staff.knowledge_base or "",
         db=db,
-        context_settings=participant.context_settings
+        context_settings=participant.context_settings,
     )
-    
+
     # Generate the final string for the preview
     system_prompt = llm_service.build_system_prompt(
         staff_name=staff.name,
@@ -350,20 +433,22 @@ async def preview_prompt(
         system_prompt=staff.system_prompt or "",
         knowledge_base=staff.knowledge_base or "",
         db=db,
-        context_settings=participant.context_settings
+        context_settings=participant.context_settings,
     )
-    
+
     # 3. Handle mentions (images and assets) for Token Estimation & UI Thumbnail delivery
     image_paths, missing_mentions = mention_parser.resolve_all_mentions(
         text=message.content,
         meeting_id=meeting_id,
         company_id=meeting.company_id,
-        db=db
+        db=db,
     )
-    
+
     # Convert absolute paths to relative web URLs for frontend rendering
     image_urls = []
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     for path in image_paths:
         try:
             # We want to format string: C:/path/to/backend/uploads/... -> /uploads/...
@@ -375,11 +460,13 @@ async def preview_prompt(
             image_urls.append(rel_path)
         except Exception as e:
             print(f"Warning: Could not resolve relative URL for {path}: {e}")
-    
+
     provider = participant.llm_provider
-    model_name = participant.llm_model or ("gemini-2.0-flash" if provider == "gemini" else "llama3")
+    model_name = participant.llm_model or (
+        "gemini-2.5-flash" if provider == "gemini" else "llama3"
+    )
     max_tokens = await llm_service.get_max_tokens(provider, model_name, db)
-    
+
     return {
         "system_prompt": system_prompt,
         "user_content": message.content,
@@ -387,101 +474,112 @@ async def preview_prompt(
         "llm_model": model_name,
         "max_tokens": max_tokens,
         "image_urls": image_urls,
-        "context_blocks": context_blocks_raw
+        "context_blocks": context_blocks_raw,
     }
+
 
 @router.put("/{meeting_id}/participants/{staff_id}/context-settings")
 async def update_participant_context_settings(
-    meeting_id: int, 
-    staff_id: int, 
-    request: schemas.UpdateContextSettingsRequest, 
-    db: Session = Depends(get_db)
+    meeting_id: int,
+    staff_id: int,
+    request: schemas.UpdateContextSettingsRequest,
+    db: Session = Depends(get_db),
 ):
-    participant = db.query(MeetingParticipant).filter(
-        MeetingParticipant.meeting_id == meeting_id,
-        MeetingParticipant.staff_id == staff_id
-    ).first()
-    
+    participant = (
+        db.query(MeetingParticipant)
+        .filter(
+            MeetingParticipant.meeting_id == meeting_id,
+            MeetingParticipant.staff_id == staff_id,
+        )
+        .first()
+    )
+
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
-    
+
     participant.context_settings = request.context_settings
     db.commit()
     return {"status": "success", "context_settings": participant.context_settings}
+
 
 @router.put("/messages/{message_id}", response_model=schemas.MeetingMessage)
 def update_message(
     message_id: int,
     message_update: schemas.UpdateMessageRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a message content"""
     message = db.query(MeetingMessage).filter(MeetingMessage.id == message_id).first()
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-    
+
     message.content = message_update.content
     db.commit()
     db.refresh(message)
     return message
 
+
 @router.post("/messages/{message_id}/resend")
-async def resend_message(
-    message_id: int,
-    staff_id: int,
-    db: Session = Depends(get_db)
-):
+async def resend_message(message_id: int, staff_id: int, db: Session = Depends(get_db)):
     """Resend a message - deletes all subsequent messages and regenerates response"""
     # Get the message to resend
     message = db.query(MeetingMessage).filter(MeetingMessage.id == message_id).first()
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-    
+
     if message.sender_type != "user":
         raise HTTPException(status_code=400, detail="Can only resend user messages")
-    
+
     meeting_id = message.meeting_id
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
         raise HTTPException(status_code=400, detail="Meeting not active")
-    
+
     # Delete all messages created after this message
     db.query(MeetingMessage).filter(
         MeetingMessage.meeting_id == meeting_id,
-        MeetingMessage.created_at > message.created_at
+        MeetingMessage.created_at > message.created_at,
     ).delete()
     db.commit()
-    
+
     # Get participant info
-    participant = db.query(MeetingParticipant).filter(
-        MeetingParticipant.meeting_id == meeting_id,
-        MeetingParticipant.staff_id == staff_id
-    ).first()
-    
+    participant = (
+        db.query(MeetingParticipant)
+        .filter(
+            MeetingParticipant.meeting_id == meeting_id,
+            MeetingParticipant.staff_id == staff_id,
+        )
+        .first()
+    )
+
     if not participant:
-        raise HTTPException(status_code=404, detail="Staff member is not a participant in this meeting")
-    
+        raise HTTPException(
+            status_code=404, detail="Staff member is not a participant in this meeting"
+        )
+
     staff = participant.staff
     p_llm_provider = participant.llm_provider
     p_llm_model = participant.llm_model
-    
+
     # Link mentioned company assets
     link_mentioned_assets(db, meeting_id, meeting.company_id, message.content)
-    
+
     # Get context
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
-    knowledge_context = memory_service.get_company_knowledge_context(db, meeting.company_id)
-    
+    knowledge_context = memory_service.get_company_knowledge_context(
+        db, meeting.company_id
+    )
+
     # Parse mentions
     image_paths, missing_mentions = mention_parser.resolve_all_mentions(
         message.content, meeting_id, meeting.company_id, db
     )
-    
+
     if missing_mentions:
         print(f"WARNING: Missing mentions in resend: {missing_mentions}")
-    
+
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
-    
+
     system_prompt = llm_service.build_system_prompt(
         staff_name=staff.name,
         role=staff.role,
@@ -494,9 +592,9 @@ async def resend_message(
         system_prompt=staff.system_prompt or "",
         knowledge_base=staff.knowledge_base or "",
         db=db,
-        context_settings=participant.context_settings
+        context_settings=participant.context_settings,
     )
-    
+
     # No custom overrides implemented in resend for now (can be passed via schema if updated, but keeping it simple)
     # If we wanted to allow overrides in resend, we'd add custom_system_prompt as query param or body. We will leave it standard.
 
@@ -507,169 +605,198 @@ async def resend_message(
             system_prompt=system_prompt,
             provider=p_llm_provider,
             model=p_llm_model,
-            image_paths=image_paths
+            image_paths=image_paths,
         ):
             response_parts.append(chunk)
             yield chunk
-        
+
         full_response = "".join(response_parts)
-        
+
         from ..database import SessionLocal
+
         with SessionLocal() as new_db:
             staff_message = MeetingMessage(
-                meeting_id=meeting_id, staff_id=staff_id, sender_type="staff",
-                sender_name=staff.name, content=full_response
+                meeting_id=meeting_id,
+                staff_id=staff_id,
+                sender_type="staff",
+                sender_name=staff.name,
+                content=full_response,
             )
             new_db.add(staff_message)
             new_db.commit()
-    
+
     return StreamingResponse(generate_response(), media_type="text/plain")
+
 
 @router.put("/{meeting_id}/status")
 async def update_meeting_status(
-    meeting_id: int, 
-    status_update: schemas.UpdateMeetingStatusRequest, 
-    db: Session = Depends(get_db)
+    meeting_id: int,
+    status_update: schemas.UpdateMeetingStatusRequest,
+    db: Session = Depends(get_db),
 ):
     """Update meeting status (end meeting) and generate summary with specific LLM"""
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+
     meeting.status = status_update.status
-    
+
     if status_update.status == "ended":
         meeting.ended_at = datetime.utcnow()
-        
+
         summary = await memory_service.generate_meeting_summary(
-            db, 
-            meeting_id, 
+            db,
+            meeting_id,
             llm_service,
             provider=status_update.summary_llm_provider,
-            model=status_update.summary_llm_model
+            model=status_update.summary_llm_model,
         )
         meeting.summary = summary
         await extract_action_items(db, meeting_id, llm_service)
-    
+
     db.commit()
     db.refresh(meeting)
     return meeting
 
+
 @router.post("/{meeting_id}/ask-all")
-async def ask_all_participants(meeting_id: int, message: schemas.SendMessageToAllRequest, db: Session = Depends(get_db)):
+async def ask_all_participants(
+    meeting_id: int,
+    message: schemas.SendMessageToAllRequest,
+    db: Session = Depends(get_db),
+):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
         raise HTTPException(status_code=400, detail="Meeting not active")
-    
+
     company_id = meeting.company_id
     user_message = MeetingMessage(
-        meeting_id=meeting_id, sender_type="user", sender_name=message.sender_name, content=message.content
+        meeting_id=meeting_id,
+        sender_type="user",
+        sender_name=message.sender_name,
+        content=message.content,
     )
     db.add(user_message)
     db.commit()
-    
+
     # Link mentioned company assets to meeting images
     link_mentioned_assets(db, meeting_id, company_id, message.content)
-    
-    participants_query = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
-    
+
+    participants_query = (
+        db.query(MeetingParticipant)
+        .filter(MeetingParticipant.meeting_id == meeting_id)
+        .all()
+    )
+
     # Eager load participant data to avoid detached session errors during streaming
     participants_data = []
     for p in participants_query:
         if p.staff:
-            participants_data.append({
-                'staff_id': p.staff.id,
-                'name': p.staff.name,
-                'role': p.staff.role,
-                'personality': p.staff.personality,
-                'expertise': p.staff.expertise,
-                'system_prompt': p.staff.system_prompt,
-                'knowledge_base': p.staff.knowledge_base,
-                'llm_provider': p.llm_provider,
-                'llm_model': p.llm_model,
-                'context_settings': p.context_settings
-            })
-            
+            participants_data.append(
+                {
+                    "staff_id": p.staff.id,
+                    "name": p.staff.name,
+                    "role": p.staff.role,
+                    "personality": p.staff.personality,
+                    "expertise": p.staff.expertise,
+                    "system_prompt": p.staff.system_prompt,
+                    "knowledge_base": p.staff.knowledge_base,
+                    "llm_provider": p.llm_provider,
+                    "llm_model": p.llm_model,
+                    "context_settings": p.context_settings,
+                }
+            )
+
     meeting_context = memory_service.get_meeting_context(db, meeting_id)
     knowledge_context = memory_service.get_company_knowledge_context(db, company_id)
-    
+
     # Parse @mentions from message content to get image paths
     image_paths, missing_mentions = mention_parser.resolve_all_mentions(
         message.content, meeting_id, company_id, db
     )
-    
+
     # Warn if any mentions were not found
     if missing_mentions:
         print(f"WARNING: Missing mentions in ask_all: {missing_mentions}")
-    
+
     company = db.query(Company).filter(Company.id == meeting.company_id).first()
     company_name = company.name if company else "MyVCO"
     company_desc = company.description if company else ""
 
     async def generate_all_responses():
         from ..database import SessionLocal
-        
+
         for p_data in participants_data:
             system_prompt = llm_service.build_system_prompt(
-                staff_name=p_data['name'], 
-                role=p_data['role'], 
-                personality=p_data['personality'],
-                expertise=p_data['expertise'], 
+                staff_name=p_data["name"],
+                role=p_data["role"],
+                personality=p_data["personality"],
+                expertise=p_data["expertise"],
                 company_context=knowledge_context,
                 meeting_context=meeting_context,
                 company_name=company_name,
                 company_description=company_desc,
-                system_prompt=p_data['system_prompt'] or "", 
-                knowledge_base=p_data.get('knowledge_base') or "",
+                system_prompt=p_data["system_prompt"] or "",
+                knowledge_base=p_data.get("knowledge_base") or "",
                 db=db,
-                context_settings=p_data.get('context_settings')
+                context_settings=p_data.get("context_settings"),
             )
-            
+
             # Allow overrides
             if message.custom_system_prompt is not None:
                 system_prompt = message.custom_system_prompt
-                
-            final_prompt = message.custom_user_content if message.custom_user_content is not None else message.content
-            
+
+            final_prompt = (
+                message.custom_user_content
+                if message.custom_user_content is not None
+                else message.content
+            )
+
             # Send the staff delimiter first
             yield f"---STAFF:{p_data['name']}---\n"
-            
+
             response_parts = []
-            
+
             # FIX: Explicitly iterate over the inner generator and yield its chunks
             async for chunk in llm_service.generate_stream(
-                prompt=final_prompt, 
-                system_prompt=system_prompt, 
-                provider=p_data['llm_provider'],
-                model=p_data['llm_model'],
-                image_paths=image_paths
+                prompt=final_prompt,
+                system_prompt=system_prompt,
+                provider=p_data["llm_provider"],
+                model=p_data["llm_model"],
+                image_paths=image_paths,
             ):
                 response_parts.append(chunk)
                 yield chunk
-            
+
             # Save the complete response to the database
             full_response = "".join(response_parts)
-            
+
             # Use a new session for saving since the main one is closed/unsafe in async generator
             with SessionLocal() as new_db:
                 staff_message = MeetingMessage(
-                    meeting_id=meeting_id, staff_id=p_data['staff_id'], sender_type="staff",
-                    sender_name=p_data['name'], content=full_response
+                    meeting_id=meeting_id,
+                    staff_id=p_data["staff_id"],
+                    sender_type="staff",
+                    sender_name=p_data["name"],
+                    content=full_response,
                 )
                 new_db.add(staff_message)
                 new_db.commit()
-    
+
     return StreamingResponse(generate_all_responses(), media_type="text/plain")
 
+
 @router.post("/{meeting_id}/upload-image")
-async def upload_meeting_image(meeting_id: int, image: MeetingImageCreate, db: Session = Depends(get_db)):
+async def upload_meeting_image(
+    meeting_id: int, image: MeetingImageCreate, db: Session = Depends(get_db)
+):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+
     if not os.path.exists(UPLOADS_DIR):
         os.makedirs(UPLOADS_DIR)
-    
+
     try:
         if "," in image.image_data:
             header, encoded = image.image_data.split(",", 1)
@@ -679,99 +806,123 @@ async def upload_meeting_image(meeting_id: int, image: MeetingImageCreate, db: S
         image_data = base64.b64decode(encoded)
         image_filename = f"meeting_{meeting_id}_{datetime.utcnow().timestamp()}.png"
         abs_image_path = os.path.join(UPLOADS_DIR, image_filename)
-        
+
         # Auto-assign display_order based on existing images count
-        existing_images_count = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).count()
+        existing_images_count = (
+            db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).count()
+        )
         display_order = existing_images_count + 1
-        
+
         with open(abs_image_path, "wb") as f:
             f.write(image_data)
             f.flush()
-            os.fsync(f.fileno()) 
-        
+            os.fsync(f.fileno())
+
         relative_path = f"uploads/meeting_images/{image_filename}"
-        
+
         db_image = MeetingImage(
             meeting_id=meeting_id,
             image_path=relative_path,
             display_order=display_order,
             analysis=None,
-            image_metadata=image.description
+            image_metadata=image.description,
         )
         db.add(db_image)
         db.commit()
         db.refresh(db_image)
-        
+
         return {
             "id": db_image.id,
             "image_url": f"/uploads/meeting_images/{image_filename}",
-            "description": image.description
+            "description": image.description,
         }
     except Exception as e:
         print(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
+
 @router.get("/{meeting_id}/images")
 def get_meeting_images(meeting_id: int, db: Session = Depends(get_db)):
-    images = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).order_by(MeetingImage.display_order).all()
-    return [{
-        "id": img.id,
-        "image_url": f"/{img.image_path.replace(os.sep, '/')}",
-        "description": img.image_metadata,
-        "display_order": img.display_order,
-        "created_at": img.created_at
-    } for img in images]
+    images = (
+        db.query(MeetingImage)
+        .filter(MeetingImage.meeting_id == meeting_id)
+        .order_by(MeetingImage.display_order)
+        .all()
+    )
+    return [
+        {
+            "id": img.id,
+            "image_url": f"/{img.image_path.replace(os.sep, '/')}",
+            "description": img.image_metadata,
+            "display_order": img.display_order,
+            "created_at": img.created_at,
+        }
+        for img in images
+    ]
+
 
 @router.get("/{meeting_id}/action-items", response_model=List[ActionItemSchema])
 def get_action_items(meeting_id: int, db: Session = Depends(get_db)):
     return db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).all()
 
+
 @router.post("/{meeting_id}/action-items", response_model=ActionItemSchema)
-def create_action_item(meeting_id: int, action_item: ActionItemCreate, db: Session = Depends(get_db)):
-    db_item = ActionItem(meeting_id=meeting_id, description=action_item.description, assigned_to=action_item.assigned_to)
+def create_action_item(
+    meeting_id: int, action_item: ActionItemCreate, db: Session = Depends(get_db)
+):
+    db_item = ActionItem(
+        meeting_id=meeting_id,
+        description=action_item.description,
+        assigned_to=action_item.assigned_to,
+    )
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     return db_item
 
+
 @router.put("/action-items/{item_id}/complete")
 def complete_action_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
-    if not item: raise HTTPException(status_code=404, detail="Action item not found")
+    if not item:
+        raise HTTPException(status_code=404, detail="Action item not found")
     item.status = "completed"
     item.completed_at = datetime.utcnow()
     db.commit()
     return item
 
+
 async def extract_action_items(db: Session, meeting_id: int, llm_service):
     # Implementation skipped for brevity
     pass
+
 
 @router.delete("/{meeting_id}")
 def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-    
+
     images = db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).all()
     for img in images:
         if img.image_path:
             try:
                 filename = os.path.basename(img.image_path)
                 file_path = os.path.join(UPLOADS_DIR, filename)
-                if os.path.exists(file_path): os.remove(file_path)
-            except: pass
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except:
+                pass
 
     db.query(MeetingImage).filter(MeetingImage.meeting_id == meeting_id).delete()
     db.delete(meeting)
     db.commit()
     return {"message": "Meeting deleted successfully"}
 
+
 @router.post("/{meeting_id}/autonomous")
 async def start_autonomous_session(
-    meeting_id: int, 
-    request: schemas.SendMessageRequest, 
-    db: Session = Depends(get_db)
+    meeting_id: int, request: schemas.SendMessageRequest, db: Session = Depends(get_db)
 ):
     """
     Starts an autonomous AutoGen loop.
@@ -785,8 +936,12 @@ async def start_autonomous_session(
     autonomous_stop_events[meeting_id] = stop_event
 
     msg_queue = queue.Queue()
-    
-    participants = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting_id).all()
+
+    participants = (
+        db.query(MeetingParticipant)
+        .filter(MeetingParticipant.meeting_id == meeting_id)
+        .all()
+    )
     if len(participants) < 1:
         raise HTTPException(status_code=400, detail="Need at least 1 participant")
 
@@ -796,13 +951,35 @@ async def start_autonomous_session(
     image_context = memory_service.get_current_meeting_image(db, meeting_id)
 
     agent_list = []
-    agent_map = {} 
+    agent_map = {}
 
     user_proxy = autogen_service.create_user_proxy()
-    
+    # Get a list of everyone in the room for the prompt
+    agent_names = [p.staff.name for p in participants]
+    team_members_str = ", ".join(agent_names)
+
+    user_proxy = autogen_service.create_user_proxy()
+
+    # --- AFK DEFLECTOR ---
+    # Prevents the "Empty String Loop" if agents ask the user a question
+    def afk_deflector(recipient, messages, sender, config):
+        if not messages:
+            return False, None
+        last_msg = messages[-1]
+        
+        # If there are no tool calls requested, User_Admin has no reason to act.
+        if "tool_calls" not in last_msg and not last_msg.get("content", "").startswith("***** Response"):
+            return True, "[SYSTEM NOTICE]: The User is AFK (Away From Keyboard). DO NOT ask the user for input. Pass the turn to your AI teammates, or output TERMINATE if the task is completely finished."
+            
+        return False, None
+
+    # Register the deflector at position 2 (after tool execution but before default empty reply)
+    user_proxy.register_reply([autogen.Agent, None], afk_deflector, position=2)
+
     for p in participants:
         staff = p.staff
-        system_prompt = llm_service.build_system_prompt(
+        
+        base_system_prompt = llm_service.build_system_prompt(
             staff_name=staff.name,
             role=staff.role,
             personality=staff.personality,
@@ -813,21 +990,47 @@ async def start_autonomous_session(
             db=db
         )
         
+        # Dynamic Termination & AFK Rules
+        if len(participants) > 1:
+            termination_rule = (
+                f"\n- TEAM MATES: You are working in a group with: {team_members_str}."
+                f"\n- THE USER IS AFK. DO NOT ask the user questions or wait for their permission."
+                f"\n- If you need a second opinion, address a specific team member by name."
+                f"\n- DO NOT say 'TERMINATE' if other team members haven't spoken yet."
+                f"\n- ONLY say 'TERMINATE' when the ENTIRE team agrees the goal is met."
+            )
+        else:
+            termination_rule = (
+                f"\n- THE USER IS AFK. DO NOT ask the user questions."
+                f"\n- If the mission is complete, say ONLY 'TERMINATE' at the end of your final response."
+            )
+        
+        target_dir = request.target_path if request.target_path else "None (General Chat)"
+        instructions = (
+            f"\n\n[AUTONOMOUS RULES]:"
+            f"\n- TARGET DIRECTORY: {target_dir}"
+            f"\n- Use 'list_files' to see what is inside."
+            f"\n- DO NOT use 'read_file' on binary files (mp4, jpg, png, pdf, gitkeep)."
+            f"\n- Only 'read_file' on code/text files (py, js, jsx, css, html, md, txt)."
+            f"\n- Always verify a file exists with 'list_files' before reading it."
+            f"{termination_rule}"
+        )
+        
+        full_autonomous_prompt = base_system_prompt + instructions
+       
         agent = autogen_service.create_agent(
             staff_name=staff.name,
-            system_prompt=system_prompt,
+            system_prompt=full_autonomous_prompt,
             provider=p.llm_provider,
             model=p.llm_model
         )
-        
-        # Hook to check stop signal on every reply
+
         def check_stop(recipient, messages, sender, config):
             if stop_event.is_set():
-                return True, "TERMINATE" # Force termination
+                return True, "TERMINATE" 
             return False, None
-            
-        agent.register_reply([autogen.Agent, None], check_stop, position=0)
 
+        agent.register_reply([autogen.Agent, None], check_stop, position=0)
         agent_list.append(agent)
         agent_map[agent.name] = staff.id
 
@@ -835,6 +1038,7 @@ async def start_autonomous_session(
     if request.target_path:
         if os.path.exists(request.target_path):
             print(f"DEBUG: Registering Tools for {request.target_path}")
+            from services.tools.registry import register_filesystem_tools
             register_filesystem_tools(user_proxy, agent_list, request.target_path)
             tool_msg = "\n\n[SYSTEM]: You have FILE SYSTEM ACCESS. Use tools 'list_files', 'read_file', 'write_file'. Always list/read before writing."
             for ag in agent_list:
@@ -842,48 +1046,85 @@ async def start_autonomous_session(
         else:
             msg_queue.put({"type": "agent", "sender": "System", "content": f"Warning: Path {request.target_path} not found."})
 
-    # Message Capture
+    # Message Capture (Group Chats)
     class SpyList(list):
         def append(self, item):
             super().append(item)
             if isinstance(item, dict):
                 sender = item.get("name", "Unknown")
                 content = item.get("content", "")
-                if sender != user_proxy.name and content and content.strip() and content != "TERMINATE":
-                    msg_queue.put({"sender": sender, "content": content, "type": "agent"})
+                
+                if sender in ["User_Admin", "chat_manager"]: return
+                if content and ("***** Suggested tool call" in content or "***** Response from calling" in content): return
+                
+                if content and str(content).strip():
+                    clean_content = str(content).replace("TERMINATE", "").strip()
+                    if clean_content and not clean_content.startswith("[SYSTEM NOTICE]"):
+                        msg_queue.put({"sender": sender, "content": clean_content, "type": "agent"})
 
     # Run Loop
     def run_autogen_loop():
         try:
+            msg_queue.put({"sender": "System", "content": "Mission started. Orchestrating agents...", "type": "agent"})
+            
             # 1-on-1 Mode
             if len(agent_list) == 1:
                 print("DEBUG: Starting 1-on-1 Chat")
-                user_proxy.initiate_chat(
-                    agent_list[0],
-                    message=request.content
-                )
+                target_agent = agent_list[0]
+                capture_state = {"is_first": True}
+                
+                def one_on_one_capture(recipient, messages, sender, config):
+                    if not messages: return False, None
+                    if capture_state["is_first"]:
+                        capture_state["is_first"] = False
+                        return False, None
+                    
+                    msg = messages[-1]
+                    name = msg.get("name", sender.name)
+                    content = msg.get("content", "")
+                    
+                    if name in ["User_Admin", "chat_manager"]: return False, None
+                    if content and ("***** Suggested tool call" in content or "***** Response from calling" in content): return False, None
+                            
+                    if content and str(content).strip():
+                        clean = str(content).replace("TERMINATE", "").strip()
+                        if clean and not clean.startswith("[SYSTEM NOTICE]"):
+                            msg_queue.put({"sender": name, "content": clean, "type": "agent"})
+                            
+                    return False, None
+
+                user_proxy.register_reply([autogen.Agent, None], one_on_one_capture, position=1)
+                target_agent.register_reply([autogen.Agent, None], one_on_one_capture, position=1)
+                
+                user_proxy.initiate_chat(target_agent, message=request.content)
+
             # Group Mode
             else:
                 print("DEBUG: Starting Group Chat")
                 groupchat = autogen.GroupChat(
                     agents=[user_proxy] + agent_list, 
-                    messages=SpyList(),
-                    max_round=12
+                    messages=SpyList(), 
+                    max_round=12,
+                    speaker_selection_method="auto" # Let LLM decide based on the AFK rules
                 )
-                # Determine Manager LLM (Prefer Gemini, fallback Ollama)
+                
                 from ..config import settings
                 if settings.gemini_api_key:
-                     mgr_config = autogen_service._get_llm_config("gemini", "gemini-2.0-flash")
+                    mgr_config = autogen_service._get_llm_config("gemini", "gemini-2.5-flash")
                 elif settings.ollama_base_url:
-                     def_model = participants[0].llm_model or "llama3"
-                     mgr_config = autogen_service._get_llm_config("ollama", def_model)
-                
+                    def_model = participants[0].llm_model or "llama3"
+                    mgr_config = autogen_service._get_llm_config("ollama", def_model)
+
                 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=mgr_config)
                 user_proxy.initiate_chat(manager, message=request.content)
 
         except Exception as e:
-            print(f"AutoGen Error: {e}")
-            msg_queue.put({"type": "error", "content": str(e)})
+            error_msg = f"AutoGen Error: {str(e)}"
+            if "INVALID_ARGUMENT" in error_msg:
+                error_msg = "Model Error: Gemini requires one tool result at a time. Retrying mission logic..."
+            
+            print(f"CRITICAL ERROR: {error_msg}")
+            msg_queue.put({"sender": "System Error", "content": error_msg, "type": "agent"})
         finally:
             msg_queue.put({"type": "done"})
             if meeting_id in autonomous_stop_events:
@@ -896,38 +1137,62 @@ async def start_autonomous_session(
     async def response_generator():
         # Save trigger
         from ..database import SessionLocal
+
         with SessionLocal() as local_db:
             user_msg = MeetingMessage(
-                meeting_id=meeting_id, sender_type="user", sender_name="User (Autonomous)", content=request.content
+                meeting_id=meeting_id,
+                sender_type="user",
+                sender_name="User (Autonomous)",
+                content=request.content,
             )
             local_db.add(user_msg)
             local_db.commit()
 
         while True:
+            print("DEBUG: Waiting for message from AutoGen...")
             try:
                 data = await asyncio.to_thread(msg_queue.get)
-                if data["type"] == "done": break
-                if data["type"] == "error": 
+                if data["type"] == "done":
+                    break
+                if data["type"] == "error":
                     yield f"ERROR: {data['content']}\n"
                     break
-                
+
                 if data["type"] == "agent":
                     sender = data["sender"]
-                    if "chat_manager" in sender: continue
-                    
+                    if "chat_manager" in sender:
+                        continue
+
+                    # 1. Send text to frontend
                     yield f"---STAFF:{sender}---\n{data['content']}\n"
-                    
-                    # Save
-                    staff_id = agent_map.get(sender)
-                    if staff_id:
+
+                    # 2. GUARANTEED SAVE LOGIC
+                    try:
+                        staff_id = agent_map.get(sender)
+                        
+                        # Fallback case-insensitive match if exact map fails
+                        if not staff_id:
+                            for ag_name, s_id in agent_map.items():
+                                if ag_name.lower() in sender.lower() or sender.lower() in ag_name.lower():
+                                    staff_id = s_id
+                                    break
+                                    
+                        # ALWAYS save, even if staff_id is still None
                         with SessionLocal() as local_db:
-                             db_msg = MeetingMessage(
-                                meeting_id=meeting_id, staff_id=staff_id, 
-                                sender_type="staff", sender_name=sender, content=data['content']
-                             )
-                             local_db.add(db_msg)
-                             local_db.commit()
+                            db_msg = MeetingMessage(
+                                meeting_id=meeting_id,
+                                staff_id=staff_id, 
+                                sender_type="staff" if staff_id else "system",
+                                sender_name=sender,
+                                content=data["content"],
+                            )
+                            local_db.add(db_msg)
+                            local_db.commit()
+                    except Exception as db_err:
+                        print(f"CRITICAL DB SAVE ERROR: {db_err}")
+
             except Exception as e:
+                print(f"STREAMER FATAL ERROR: {e}")
                 break
 
     return StreamingResponse(response_generator(), media_type="text/plain")

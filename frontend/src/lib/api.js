@@ -63,7 +63,7 @@ export const meetingsApi = {
   askAll: (meetingId, data) => api.post(`/meetings/${meetingId}/ask-all`, data),
   startAutonomous: (meetingId, data) =>
     api.post(`/meetings/${meetingId}/autonomous`, data),
-  stopAutonomous: (id) => api.post(`/meetings/${id}/autonomous/stop`),
+  stopAutonomous: (id) => axios.post(`/meetings/${id}/autonomous/stop`),
   updateStatus: (id, data) => api.put(`/meetings/${id}/status`, data),
   uploadImage: (meetingId, data) =>
     api.post(`/meetings/${meetingId}/upload-image`, data),

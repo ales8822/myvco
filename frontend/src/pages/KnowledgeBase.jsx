@@ -1,3 +1,4 @@
+// frontend/src/pages/KnowledgeBase.jsx
 import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import { useKnowledgeData } from '../features/knowledge/hooks/useKnowledgeData';

@@ -1,7 +1,8 @@
+# registry.py
+import os
 from autogen import UserProxyAgent, AssistantAgent
 from typing import List
 from .filesystem import FileSystemTools
-
 def register_filesystem_tools(
     user_proxy: UserProxyAgent, 
     assistants: List[AssistantAgent], 
@@ -16,14 +17,29 @@ def register_filesystem_tools(
     # Define the function map
     # We wrap class methods to make them standalone functions for AutoGen
     
+    # 1.1 Helper to ensure we are ALWAYS inside the selected folder
+    def secure_path(path):
+        # If the LLM gives an absolute path already, check it's within root
+        # Otherwise, join it with our root_path
+        if os.path.isabs(path):
+            return path
+        return os.path.join(root_path, path)
+
     def list_files(directory: str = "."):
-        return fs_tools.list_files(directory)
+        # Force the listing to the specific mission path
+        target = secure_path(directory)
+        print(f"DEBUG: AI listing directory: {target}")
+        return fs_tools.list_files(target)
 
     def read_file(file_path: str):
-        return fs_tools.read_file(file_path)
+        target = secure_path(file_path)
+        print(f"DEBUG: AI reading file: {target}")
+        return fs_tools.read_file(target)
 
     def write_file(file_path: str, content: str):
-        return fs_tools.write_file(file_path, content)
+        target = secure_path(file_path)
+        print(f"DEBUG: AI writing to: {target}") # Check your console for this print!
+        return fs_tools.write_file(target, content)
 
     # Register for Execution (The User Proxy actually runs the code on the disk)
     user_proxy.register_function(

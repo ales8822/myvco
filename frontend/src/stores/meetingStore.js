@@ -8,6 +8,7 @@ export const useMeetingStore = create((set) => ({
   messages: [],
   loading: false,
   error: null,
+  isStreaming: false, // Track if an agent is talking
 
   fetchMeetings: async (companyId) => {
     set({ loading: true, error: null });
@@ -130,4 +131,100 @@ export const useMeetingStore = create((set) => ({
       set({ error: error.message, loading: false });
     }
   },
+
+   // 1.1 Added startAutonomousSession
+  startAutonomousSession: async (meetingId, content, targetPath) => {
+    set({ isStreaming: true, error: null });
+
+    try {
+        const response = await fetch(`/api/meetings/${meetingId}/autonomous`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, target_path: targetPath, sender_name: 'User' })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        let buffer = "";
+        let currentMessageObj = null;
+
+        // 1.2 The Stream Loop
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+            
+            const markerRegex = /---STAFF:(.+?)---\n?/;
+
+            while (true) {
+                const match = markerRegex.exec(buffer);
+                if (!match) break;
+
+                // 1.3 Lock in text before the marker to the existing message
+                const textBefore = buffer.substring(0, match.index);
+                if (currentMessageObj) {
+                    currentMessageObj.content += textBefore;
+                    const savedObj = { ...currentMessageObj }; // Isolate object for Zustand
+                    set((state) => ({
+                        messages: state.messages.map(m => 
+                            m.id === savedObj.id ? savedObj : m
+                        )
+                    }));
+                }
+
+                // 1.4 Create the new bubble
+                const staffName = match[1];
+                currentMessageObj = {
+                    id: `auto-${Date.now()}-${Math.random()}`,
+                    sender_name: staffName,
+                    sender_type: 'staff',
+                    content: '',
+                    created_at: new Date().toISOString()
+                };
+                
+                const newObj = { ...currentMessageObj }; // Isolate object for Zustand
+                set((state) => ({
+                    messages: [...state.messages, newObj]
+                }));
+
+                // 1.5 Consume the buffer
+                buffer = buffer.substring(match.index + match[0].length);
+            }
+
+            // 1.6 Show remaining stream data in the active bubble safely
+            if (currentMessageObj && buffer) {
+                const displayContent = currentMessageObj.content + buffer;
+                const idToUpdate = currentMessageObj.id;
+                set((state) => ({
+                    messages: state.messages.map(m => 
+                        m.id === idToUpdate ? { ...m, content: displayContent } : m
+                    )
+                }));
+            }
+        }
+    } catch (err) {
+        set({ error: "Autonomous session failed to stream" });
+    } finally {
+        set({ isStreaming: false });
+        // Wait 500ms to guarantee the SQLite database has finished its commit
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh from DB to get official IDs and clean history
+        get().selectMeeting(meetingId); 
+
+    }
+  },
+
+  // 1.5 Added stopAutonomousSession
+  stopAutonomousSession: async (meetingId) => {
+    try {
+        await meetingsApi.stopAutonomous(meetingId);
+        set({ isStreaming: false });
+    } catch (err) {
+        console.error("Failed to stop session", err);
+    }
+  }
 }));
