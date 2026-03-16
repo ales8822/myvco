@@ -1,10 +1,13 @@
-```text
+Here is the complete `README.md` in a single code block. You can click the "Copy code" button in the top right corner of the block and paste it directly into your file.
+
+```markdown
 ├── backend/          # FastAPI backend
 │   ├── app/
 │   │   ├── models/   # Database models
 │   │   ├── routers/  # API endpoints
 │   │   ├── schemas/  # Modular Pydantic models
-│   │   ├── services/ # Business logic
+│   │   ├── services/ # Business logic (LLM, Memory, Multi-Agent)
+│   │   │   └── tools/ # Local file system execution tools
 │   │   └── main.py   # Application entry
 │   └── requirements.txt
 │
@@ -17,13 +20,12 @@
     │   │   ├── library/
     │   │   ├── meeting/
     │   │   │   ├── components/
-    │   │   │   └── hooks/ # Optimized chat hooks
+    │   │   │   └── hooks/ # Optimized chat hooks & stream parsers
     │   │   └── staff/
     │   ├── pages/      # Route components
     │   ├── stores/     # Zustand state management
     │   └── lib/        # API client
     └── package.json
-```
 
 ## 🛠️ Setup Instructions
 
@@ -51,7 +53,7 @@ copy .env.example .env
 ```
 
 5. Edit `.env` and add your API keys:
-```
+```env
 GEMINI_API_KEY=your_gemini_api_key_here
 OLLAMA_BASE_URL=https://your-runpod-id.runpod.io  # Optional
 ```
@@ -92,6 +94,8 @@ Frontend will be available at: http://localhost:5173
 5. **Start Meetings**: Create meetings and have conversations with your AI staff
 6. **Context-Aware Responses**: AI staff will reference company knowledge and previous discussions
 7. **Manage Companies**: Archive companies you no longer need, or permanently delete them
+8. **Launch Autonomous Missions**: Start collaborative group chats where multiple AI staff members talk to each other to solve complex tasks.
+9. **Grant File System Access**: Use the built-in UI folder browser to give your AI staff read/write access to local directories on your machine for coding and file analysis.
 
 ## 🔧 Technology Stack
 
@@ -101,6 +105,7 @@ Frontend will be available at: http://localhost:5173
 - **SQLite**: Lightweight database
 - **Google Gemini API**: Primary LLM provider
 - **Ollama**: Alternative LLM provider via RunPod
+- **Multi-Agent Framework**: Orchestrates autonomous group chats and delegates local file-system tool execution
 
 ### Frontend
 - **React**: UI library
@@ -132,7 +137,14 @@ Frontend will be available at: http://localhost:5173
 - `GET /meetings/companies/{id}/meetings` - List meetings
 - `GET /meetings/{id}` - Get meeting details
 - `POST /meetings/{id}/messages` - Send message (streaming)
+- `POST /meetings/{id}/ask-all` - Prompt all participants simultaneously (streaming)
+- `POST /meetings/{id}/autonomous` - Start an autonomous multi-agent task (streaming)
+- `POST /meetings/{id}/autonomous/stop` - Terminate an active autonomous session
 - `PUT /meetings/{id}/status` - End meeting
+
+### System (File Access)
+- `GET /system/drives` - List local machine drives for the workspace browser
+- `POST /system/browse` - Browse local directories to set AI workspace target paths
 
 ### Knowledge
 - `POST /knowledge/companies/{id}/knowledge` - Add knowledge
@@ -179,37 +191,35 @@ DEFAULT_MODEL=gemini-2.0-flash
 - Frontend proxies `/api` requests to backend
 - Database file: `myvco.db` (created automatically)
 
+## 🎨 Design System & Visual Consistency
 
+1. **The "True Dark" Color Palette**
+   - **Base Background**: neutral-950 (#0a0a0a) – Use for page-level wrappers.
+   - **Primary Surfaces**: neutral-900 (#171717) – Use for Cards, Modals, and Sidebars.
+   - **Secondary Surfaces**: neutral-800 (#262626) – Use for Table rows, Input fields, and hover states.
+   - **Borders**: neutral-800 (Subtle) or neutral-700 (High contrast).
 
-"🎨 Design System & Visual Consistency"
+2. **Brand Accents**
+   - **Primary (Teal)**: Used for "Action" and "Knowledge" (primary-500/600). It represents growth and factual data.
+   - **Secondary (Indigo)**: Used for "Configuration" and "Behavior" (secondary-500/600). It represents the AI logic and background settings.
 
-1. The "True Dark" Color Palette
-Base Background: neutral-950 (#0a0a0a) – Use for page-level wrappers.
-Primary Surfaces: neutral-900 (#171717) – Use for Cards, Modals, and Sidebars.
-Secondary Surfaces: neutral-800 (#262626) – Use for Table rows, Input fields, and hover states.
-Borders: neutral-800 (Subtle) or neutral-700 (High contrast).
+3. **Categorical UI Patterns**
+   - To keep the app intuitive, we follow these color-coding rules:
+   - **Manifestos/Prompts**: Always use Indigo accents.
+   - **Knowledge/Assets**: Always use Teal accents.
+   - **Destructive Actions**: Use Red but paired with neutral-dark backgrounds (never pure white-on-red).
 
-2. Brand Accents
-Primary (Teal): Used for "Action" and "Knowledge" (primary-500/600). It represents growth and factual data.
-Secondary (Indigo): Used for "Configuration" and "Behavior" (secondary-500/600). It represents the AI logic and background settings.
+4. **Component Anatomy**
+   - **Corners**: Standardized to rounded-xl (12px) for main containers and rounded-lg (8px) for inputs/buttons.
+   - **Glassmorphism**: Overlays/Modals must use backdrop-blur-sm with a bg-black/60 overlay.
+   - **Transitions**: All interactive elements should include transition-all duration-200 to maintain a smooth, "app-like" feel.
 
-3. Categorical UI Patterns
-To keep the app intuitive, we follow these color-coding rules:
-Manifestos/Prompts: Always use Indigo accents.
-Knowledge/Assets: Always use Teal accents.
-Destructive Actions: Use Red but paired with neutral-dark backgrounds (never pure white-on-red).
-
-4. Component Anatomy
-Corners: Standardized to rounded-xl (12px) for main containers and rounded-lg (8px) for inputs/buttons.
-Glassmorphism: Overlays/Modals must use backdrop-blur-sm with a bg-black/60 overlay.
-Transitions: All interactive elements should include transition-all duration-200 to maintain a smooth, "app-like" feel.
-
-5. Typography Hierarchy
-Titles: text-gray-900 / dark:text-white (High Emphasis).
-Body: text-gray-700 / dark:text-neutral-300 (Medium Emphasis).
-Metadata: text-gray-500 / dark:text-neutral-500 (Low Emphasis).
+5. **Typography Hierarchy**
+   - **Titles**: text-gray-900 / dark:text-white (High Emphasis).
+   - **Body**: text-gray-700 / dark:text-neutral-300 (Medium Emphasis).
+   - **Metadata**: text-gray-500 / dark:text-neutral-500 (Low Emphasis).
 
 ## 📄 License
 
 MIT License - feel free to use this project however you'd like!
-
+```
