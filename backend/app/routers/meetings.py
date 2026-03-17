@@ -1,7 +1,7 @@
 # backend\app\routers\meetings.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload 
 from typing import List
 from datetime import datetime
 from pathlib import Path
@@ -29,10 +29,10 @@ from ..services.mention_parser import mention_parser
 import asyncio
 import queue
 import threading
-import autogen
-from ..services.autogen_service import autogen_service
-from services.tools.registry import register_filesystem_tools
+from ..services.langgraph_service import LangGraphService
+import json
 
+langgraph_service = LangGraphService()
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -919,280 +919,35 @@ def delete_meeting(meeting_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Meeting deleted successfully"}
 
-
 @router.post("/{meeting_id}/autonomous")
 async def start_autonomous_session(
     meeting_id: int, request: schemas.SendMessageRequest, db: Session = Depends(get_db)
 ):
-    """
-    Starts an autonomous AutoGen loop.
-    """
+    print(f"DEBUG: ROUTE HIT! Meeting ID: {meeting_id}")
+    
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting or meeting.status != "active":
+        print(f"DEBUG: Meeting check failed. Found: {bool(meeting)}")
         raise HTTPException(status_code=400, detail="Meeting not active")
 
-    # Create Stop Event
-    stop_event = threading.Event()
-    autonomous_stop_events[meeting_id] = stop_event
-
-    msg_queue = queue.Queue()
-
-    participants = (
-        db.query(MeetingParticipant)
-        .filter(MeetingParticipant.meeting_id == meeting_id)
+    participants = db.query(MeetingParticipant)\
+        .options(joinedload(MeetingParticipant.staff))\
+        .filter(MeetingParticipant.meeting_id == meeting_id)\
         .all()
-    )
-    if len(participants) < 1:
-        raise HTTPException(status_code=400, detail="Need at least 1 participant")
+    print(f"DEBUG: Found {len(participants)} participants.")
 
-    # Context
-    company_id = meeting.company_id
-    knowledge_context = memory_service.get_company_knowledge_context(db, company_id)
-    image_context = memory_service.get_current_meeting_image(db, meeting_id)
-
-    agent_list = []
-    agent_map = {}
-
-    user_proxy = autogen_service.create_user_proxy()
-    # Get a list of everyone in the room for the prompt
-    agent_names = [p.staff.name for p in participants]
-    team_members_str = ", ".join(agent_names)
-
-    user_proxy = autogen_service.create_user_proxy()
-
-    # --- AFK DEFLECTOR ---
-    # Prevents the "Empty String Loop" if agents ask the user a question
-    def afk_deflector(recipient, messages, sender, config):
-        if not messages:
-            return False, None
-        last_msg = messages[-1]
-        
-        # If there are no tool calls requested, User_Admin has no reason to act.
-        if "tool_calls" not in last_msg and not last_msg.get("content", "").startswith("***** Response"):
-            return True, "[SYSTEM NOTICE]: The User is AFK (Away From Keyboard). DO NOT ask the user for input. Pass the turn to your AI teammates, or output TERMINATE if the task is completely finished."
-            
-        return False, None
-
-    # Register the deflector at position 2 (after tool execution but before default empty reply)
-    user_proxy.register_reply([autogen.Agent, None], afk_deflector, position=2)
-
-    for p in participants:
-        staff = p.staff
-        
-        base_system_prompt = llm_service.build_system_prompt(
-            staff_name=staff.name,
-            role=staff.role,
-            personality=staff.personality,
-            expertise=staff.expertise,
-            company_context=knowledge_context,
-            meeting_context=image_context,
-            system_prompt=staff.system_prompt,
-            db=db
-        )
-        
-        # Dynamic Termination & AFK Rules
-        if len(participants) > 1:
-            termination_rule = (
-                f"\n- TEAM MATES: You are working in a group with: {team_members_str}."
-                f"\n- THE USER IS AFK. DO NOT ask the user questions or wait for their permission."
-                f"\n- If you need a second opinion, address a specific team member by name."
-                f"\n- DO NOT say 'TERMINATE' if other team members haven't spoken yet."
-                f"\n- ONLY say 'TERMINATE' when the ENTIRE team agrees the goal is met."
-            )
-        else:
-            termination_rule = (
-                f"\n- THE USER IS AFK. DO NOT ask the user questions."
-                f"\n- If the mission is complete, say ONLY 'TERMINATE' at the end of your final response."
-            )
-        
-        target_dir = request.target_path if request.target_path else "None (General Chat)"
-        instructions = (
-            f"\n\n[AUTONOMOUS RULES]:"
-            f"\n- TARGET DIRECTORY: {target_dir}"
-            f"\n- Use 'list_files' to see what is inside."
-            f"\n- DO NOT use 'read_file' on binary files (mp4, jpg, png, pdf, gitkeep)."
-            f"\n- Only 'read_file' on code/text files (py, js, jsx, css, html, md, txt)."
-            f"\n- Always verify a file exists with 'list_files' before reading it."
-            f"{termination_rule}"
-        )
-        
-        full_autonomous_prompt = base_system_prompt + instructions
-       
-        agent = autogen_service.create_agent(
-            staff_name=staff.name,
-            system_prompt=full_autonomous_prompt,
-            provider=p.llm_provider,
-            model=p.llm_model
-        )
-
-        def check_stop(recipient, messages, sender, config):
-            if stop_event.is_set():
-                return True, "TERMINATE" 
-            return False, None
-
-        agent.register_reply([autogen.Agent, None], check_stop, position=0)
-        agent_list.append(agent)
-        agent_map[agent.name] = staff.id
-
-    # Register Tools if Path provided
-    if request.target_path:
-        if os.path.exists(request.target_path):
-            print(f"DEBUG: Registering Tools for {request.target_path}")
-            from services.tools.registry import register_filesystem_tools
-            register_filesystem_tools(user_proxy, agent_list, request.target_path)
-            tool_msg = "\n\n[SYSTEM]: You have FILE SYSTEM ACCESS. Use tools 'list_files', 'read_file', 'write_file'. Always list/read before writing."
-            for ag in agent_list:
-                ag.update_system_message(ag.system_message + tool_msg)
-        else:
-            msg_queue.put({"type": "agent", "sender": "System", "content": f"Warning: Path {request.target_path} not found."})
-
-    # Message Capture (Group Chats)
-    class SpyList(list):
-        def append(self, item):
-            super().append(item)
-            if isinstance(item, dict):
-                sender = item.get("name", "Unknown")
-                content = item.get("content", "")
-                
-                if sender in ["User_Admin", "chat_manager"]: return
-                if content and ("***** Suggested tool call" in content or "***** Response from calling" in content): return
-                
-                if content and str(content).strip():
-                    clean_content = str(content).replace("TERMINATE", "").strip()
-                    if clean_content and not clean_content.startswith("[SYSTEM NOTICE]"):
-                        msg_queue.put({"sender": sender, "content": clean_content, "type": "agent"})
-
-    # Run Loop
-    def run_autogen_loop():
+    async def event_generator():
+        print("DEBUG: Entering event_generator...")
         try:
-            msg_queue.put({"sender": "System", "content": "Mission started. Orchestrating agents...", "type": "agent"})
-            
-            # 1-on-1 Mode
-            if len(agent_list) == 1:
-                print("DEBUG: Starting 1-on-1 Chat")
-                target_agent = agent_list[0]
-                capture_state = {"is_first": True}
-                
-                def one_on_one_capture(recipient, messages, sender, config):
-                    if not messages: return False, None
-                    if capture_state["is_first"]:
-                        capture_state["is_first"] = False
-                        return False, None
-                    
-                    msg = messages[-1]
-                    name = msg.get("name", sender.name)
-                    content = msg.get("content", "")
-                    
-                    if name in ["User_Admin", "chat_manager"]: return False, None
-                    if content and ("***** Suggested tool call" in content or "***** Response from calling" in content): return False, None
-                            
-                    if content and str(content).strip():
-                        clean = str(content).replace("TERMINATE", "").strip()
-                        if clean and not clean.startswith("[SYSTEM NOTICE]"):
-                            msg_queue.put({"sender": name, "content": clean, "type": "agent"})
-                            
-                    return False, None
-
-                user_proxy.register_reply([autogen.Agent, None], one_on_one_capture, position=1)
-                target_agent.register_reply([autogen.Agent, None], one_on_one_capture, position=1)
-                
-                user_proxy.initiate_chat(target_agent, message=request.content)
-
-            # Group Mode
-            else:
-                print("DEBUG: Starting Group Chat")
-                groupchat = autogen.GroupChat(
-                    agents=[user_proxy] + agent_list, 
-                    messages=SpyList(), 
-                    max_round=12,
-                    speaker_selection_method="auto" # Let LLM decide based on the AFK rules
-                )
-                
-                from ..config import settings
-                if settings.gemini_api_key:
-                    mgr_config = autogen_service._get_llm_config("gemini", "gemini-2.5-flash")
-                elif settings.ollama_base_url:
-                    def_model = participants[0].llm_model or "llama3"
-                    mgr_config = autogen_service._get_llm_config("ollama", def_model)
-
-                manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=mgr_config)
-                user_proxy.initiate_chat(manager, message=request.content)
-
+            # Check if langgraph_service is defined
+            print(f"DEBUG: Calling langgraph_service.run_autonomous_session")
+            async for event in langgraph_service.run_autonomous_session(
+                meeting_id, request.content, participants, request.target_path
+            ):
+                print(f"DEBUG: Yielding event: {event}")
+                yield json.dumps(event) + "\n"
         except Exception as e:
-            error_msg = f"AutoGen Error: {str(e)}"
-            if "INVALID_ARGUMENT" in error_msg:
-                error_msg = "Model Error: Gemini requires one tool result at a time. Retrying mission logic..."
-            
-            print(f"CRITICAL ERROR: {error_msg}")
-            msg_queue.put({"sender": "System Error", "content": error_msg, "type": "agent"})
-        finally:
-            msg_queue.put({"type": "done"})
-            if meeting_id in autonomous_stop_events:
-                del autonomous_stop_events[meeting_id]
+            print(f"DEBUG: ERROR in generator: {str(e)}")
+            yield json.dumps({"type": "error", "message": str(e)}) + "\n"
 
-    thread = threading.Thread(target=run_autogen_loop)
-    thread.start()
-
-    # Streamer
-    async def response_generator():
-        # Save trigger
-        from ..database import SessionLocal
-
-        with SessionLocal() as local_db:
-            user_msg = MeetingMessage(
-                meeting_id=meeting_id,
-                sender_type="user",
-                sender_name="User (Autonomous)",
-                content=request.content,
-            )
-            local_db.add(user_msg)
-            local_db.commit()
-
-        while True:
-            print("DEBUG: Waiting for message from AutoGen...")
-            try:
-                data = await asyncio.to_thread(msg_queue.get)
-                if data["type"] == "done":
-                    break
-                if data["type"] == "error":
-                    yield f"ERROR: {data['content']}\n"
-                    break
-
-                if data["type"] == "agent":
-                    sender = data["sender"]
-                    if "chat_manager" in sender:
-                        continue
-
-                    # 1. Send text to frontend
-                    yield f"---STAFF:{sender}---\n{data['content']}\n"
-
-                    # 2. GUARANTEED SAVE LOGIC
-                    try:
-                        staff_id = agent_map.get(sender)
-                        
-                        # Fallback case-insensitive match if exact map fails
-                        if not staff_id:
-                            for ag_name, s_id in agent_map.items():
-                                if ag_name.lower() in sender.lower() or sender.lower() in ag_name.lower():
-                                    staff_id = s_id
-                                    break
-                                    
-                        # ALWAYS save, even if staff_id is still None
-                        with SessionLocal() as local_db:
-                            db_msg = MeetingMessage(
-                                meeting_id=meeting_id,
-                                staff_id=staff_id, 
-                                sender_type="staff" if staff_id else "system",
-                                sender_name=sender,
-                                content=data["content"],
-                            )
-                            local_db.add(db_msg)
-                            local_db.commit()
-                    except Exception as db_err:
-                        print(f"CRITICAL DB SAVE ERROR: {db_err}")
-
-            except Exception as e:
-                print(f"STREAMER FATAL ERROR: {e}")
-                break
-
-    return StreamingResponse(response_generator(), media_type="text/plain")
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")

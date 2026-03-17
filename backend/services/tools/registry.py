@@ -1,11 +1,10 @@
 # registry.py
 import os
-from autogen import UserProxyAgent, AssistantAgent
 from typing import List
 from .filesystem import FileSystemTools
 def register_filesystem_tools(
-    user_proxy: UserProxyAgent, 
-    assistants: List[AssistantAgent], 
+    user_proxy, 
+    assistants: list, 
     root_path: str
 ):
     """
